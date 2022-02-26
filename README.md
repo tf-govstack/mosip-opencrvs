@@ -1,2 +1,3 @@
-# mosip-opencrvs
-MOSIP OpenCRVS integration components
+# MOSIP OpenCRVS Integration
+
+Refer to `develop` branch for ongoing development.
