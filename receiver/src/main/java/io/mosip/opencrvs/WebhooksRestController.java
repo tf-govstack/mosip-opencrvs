@@ -39,7 +39,6 @@ class WebhooksRestController{
 
   @GetMapping("/ping")
   public String ping(){
-    System.out.println(env.getProperty("ram.ka.nam"));
     return "ok";
   }
 

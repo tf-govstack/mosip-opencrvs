@@ -196,9 +196,6 @@ class ReceiverCreatePacket {
 			// audit.setAuditRequestDto(EventEnum.UNKNOWN_EXCEPTION);
 			throw new BaseCheckedException(Constants.UNKNOWN_EXCEPTION_CODE, Constants.UNKNOWN_EXCEPTION_MESSAGE, e);
 
-		} finally {
-			if (file != null && file.exists())
-				FileUtils.forceDelete(file);
 		}
 		return CompletableFuture.completedFuture("done");
 	}

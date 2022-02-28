@@ -1,5 +1,13 @@
 package io.mosip.opencrvs;
 
+import java.io.IOException;
+
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.cookie.BasicClientCookie;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,9 +41,12 @@ public class Receiver {
 	}
 
 	@Bean
-	@Qualifier("selfTokenRestTemplate")
-	public RestTemplate restTemplate() {
-    return new RestTemplate();
+	public RestTemplate selfTokenRestTemplate() throws IOException {
+		BasicCookieStore cookieStore = new BasicCookieStore();
+		BasicClientCookie cookie = new BasicClientCookie("Authorization",Utilities.getToken(env));
+		cookie.setDomain(env.getProperty("mosip.api.internal.host"));
+		cookieStore.addCookie(cookie);
+		return new RestTemplate(new HttpComponentsClientHttpRequestFactory(HttpClientBuilder.create().setDefaultCookieStore(cookieStore).build()));
 	}
 
 	public static void main(String[] args){
