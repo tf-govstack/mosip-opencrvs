@@ -55,8 +55,8 @@ class WebhooksRestController{
     //get authtoken
     HttpHeaders requestHeaders = new HttpHeaders();
     requestHeaders.setContentType(MediaType.APPLICATION_JSON);
-    HttpEntity<String> request = new HttpEntity<>("{\"client_id\":\""+ env.getProperty("CLIENT_ID") +"\",\"client_secret\":\""+ env.getProperty("CLIENT_SECRET") +"\"}",requestHeaders);
-    ResponseEntity<String> responseForRequest = restTemplate.postForEntity(env.getProperty("AUTH_URL")+"/authenticateSystemClient", request, String.class);
+    HttpEntity<String> request = new HttpEntity<>("{\"client_id\":\""+ env.getProperty("opencrvs.client.id") +"\",\"client_secret\":\""+ env.getProperty("opencrvs.client.secret.key") +"\"}",requestHeaders);
+    ResponseEntity<String> responseForRequest = restTemplate.postForEntity(env.getProperty("opencrvs.auth.url")+"/authenticateSystemClient", request, String.class);
     if(!responseForRequest.getStatusCode().equals(HttpStatus.OK)){
       return ResponseEntity.badRequest().body("{\"message\":\"Cannot get auth token\"}");
     }
@@ -68,8 +68,8 @@ class WebhooksRestController{
     requestHeaders = new HttpHeaders();
     requestHeaders.setContentType(MediaType.APPLICATION_JSON);
     requestHeaders.set("Authorization","Bearer "+token);
-    request = new HttpEntity<>("{\"hub\":{\"callback\":\""+ env.getProperty("CALLBACK_URL") +"\",\"mode\":\"subscribe\",\"secret\":\""+ env.getProperty("SHA_SECRET") +"\",\"topic\":\"BIRTH_REGISTERED\"}}",requestHeaders);
-    responseForRequest = restTemplate.postForEntity(env.getProperty("WEBHOOK_URL"), request, String.class);
+    request = new HttpEntity<>("{\"hub\":{\"callback\":\""+ env.getProperty("opencrvs.callback.url") +"\",\"mode\":\"subscribe\",\"secret\":\""+ env.getProperty("opencrvs.client.sha.secret") +"\",\"topic\":\"BIRTH_REGISTERED\"}}",requestHeaders);
+    responseForRequest = restTemplate.postForEntity(env.getProperty("opencrvs.webhooks.url"), request, String.class);
     if(responseForRequest.getStatusCode().equals(HttpStatus.ACCEPTED)) return new ResponseEntity("{\"message\":\"Error while subscription\"}",HttpStatus.INTERNAL_SERVER_ERROR);
     return ResponseEntity.ok("{\"message\":\"Successfully subscribed\"}");
   }
@@ -110,7 +110,7 @@ class WebhooksRestController{
 
     try{
       CompletableFuture<String> cf = receiverCreatePacket.createPacket(body);
-    } catch(Exception be){/*LOGG*/}
+    } catch(Exception be){/*Already Logged*/}
 
     return ResponseEntity.ok(Constants.PACKET_CREATION_STARTED);
   }

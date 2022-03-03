@@ -12,6 +12,7 @@
 		<commons.packet.manager.version>1.2.0</commons.packet.manager.version>
 		<kernel.core.version>1.2.0</kernel.core.version>
 		<kernel-keymanager-service.version>1.2.0</kernel-keymanager-service.version>
+		<kernel-auth-adapter.version>1.2.0</kernel-auth-adapter.version>
 		<apache.httpcomponents.version>4.5.6</apache.httpcomponents.version>
 		<apache.activemq.version>5.16.3</apache.activemq.version>
 		<spring.boot.version>2.0.2.RELEASE</spring.boot.version>
@@ -94,6 +95,34 @@
 			<artifactId>micrometer-registry-prometheus</artifactId>
 			<version>${io.micrometer.prometheus.version}</version>
 		</dependency>
+
+		<!-- <dependency>
+   		<groupId>io.mosip.kernel</groupId>
+   		<artifactId>kernel-auth-adapter</artifactId>
+   		<version>${kernel-auth-adapter.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-actuator</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-security</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>io.swagger</groupId>
+					<artifactId>swagger-annotations</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>io.swagger</groupId>
+					<artifactId>swagger-models</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.springdoc</groupId>
+					<artifactId>springdoc-openapi-ui</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency> -->
 
 		<dependency>
 			<groupId>io.mosip.kernel</groupId>

@@ -39,7 +39,16 @@ import io.mosip.kernel.core.util.TokenHandlerUtil;
 import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.exception.BaseUncheckedException;
 
+import io.mosip.kernel.core.logger.spi.Logger;
+import io.mosip.kernel.logger.logback.factory.Logfactory;
+
 class Utilities{
+  private static final Logger LOGGER = getLogger(Utilities.class);
+
+  static Logger getLogger(Class<?> clazz) {
+      return Logfactory.getSlf4jLogger(clazz);
+  }
+
   static Map<String,String> getMetadata(String uin, String opencrvsBirthId,  String type){
     Map<String,String> map = new HashMap<>();
     map.put("metadata","{ \"REGISTRATIONTYPE\" : \"" + type + "\", \"uin\" : \"" + uin + "\", \"OPENCRVS_ID\" : \"" + opencrvsBirthId + "\" }");
@@ -79,16 +88,16 @@ class Utilities{
 
     return mapList;
   }
-  static String getIdSchema(Double version, Map<Double,String> idschema, String apiHostIpPort, Environment env) throws BaseCheckedException, JSONException, IOException {
+  static String getIdSchema(Double version, Map<Double,String> idschemaCache, String apiHostIpPort, RestTemplate selfTokenRestTemplate) throws BaseCheckedException, JSONException, IOException {
     String RESPONSE = "response";
     String SCHEMA_JSON = "schemaJson";
     String SCHEMA_VERSION_QUERY_PARAM = "schemaVersion";
 
-    if (idschema.get(version) != null)
-      return idschema.get(version);
+    if (idschemaCache.get(version) != null)
+      return idschemaCache.get(version);
 
-    String response = (String) getApi(UriComponentsBuilder.fromUriString(apiHostIpPort).queryParam(SCHEMA_VERSION_QUERY_PARAM, version.toString()).build(false).encode().toUri(), String.class, getToken(env));
-    System.out.println("Hello Dear Friend 3.next.next "+response);
+    String response = (String) selfTokenRestTemplate.getForObject(apiHostIpPort +"?"+SCHEMA_VERSION_QUERY_PARAM+"="+version.toString(), String.class);
+    LOGGER.debug(Constants.SESSION, Constants.ID,"null","Obtained this reponse from server for getting IdSchema "+response);
 
     if (response == null)
       throw new BaseCheckedException(Constants.API_RESOURCE_UNAVAILABLE_CODE,Constants.API_RESOURCE_UNAVAILABLE_2_MESSAGE + version);
@@ -97,33 +106,16 @@ class Utilities{
     JSONObject respObj = jsonObject.getJSONObject(RESPONSE);
     String responseString = respObj != null ? (String) respObj.get(SCHEMA_JSON) : null;
 
-    if (idschema.get(version) == null)
-      idschema.put(version,responseString);
+    if (idschemaCache.get(version) == null)
+      idschemaCache.put(version,responseString);
 
     return responseString;
   }
-  static <T> T getApi(URI uri, Class<?> responseType, String token) throws BaseCheckedException {
-		try {
-      MultiValueMap<String,String> headers=new LinkedMultiValueMap<>();
-      headers.set("Cookie", "Authorization="+token);
-      System.out.println("Hello Dear Friend 3.prev " + uri);
-			Object obj = new RestTemplate().exchange(uri, HttpMethod.GET, new HttpEntity<Object>(headers), responseType).getBody();
-      System.out.println("Hello Dear Friend 3.next " + obj.toString());
-      return (T)obj;
-
-		} catch (Exception e) {
-      System.out.println("Hello Dear Friend 3.ERROR " + e);
-			// logger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.APPLICATIONID.toString(),
-			// 		LoggerFileConstant.APPLICATIONID.toString(), e.getMessage() + ExceptionUtils.getStackTrace(e));
-			throw new BaseCheckedException(Constants.API_RESOURCE_UNAVAILABLE_CODE,Constants.API_RESOURCE_UNAVAILABLE_1_MESSAGE + uri, e);
-		}
-
-	}
   static String getToken(Environment environment) throws IOException {
     MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
     formData.set("grant_type","client_credentials");
-    formData.set("client_id",environment.getProperty("opencrvs.client.id"));
-    formData.set("client_secret",environment.getProperty("opencrvs.client.secret.key"));
+    formData.set("client_id",environment.getProperty("mosip.opencrvs.client.id"));
+    formData.set("client_secret",environment.getProperty("mosip.opencrvs.client.secret.key"));
     try{
       String responseJson = new RestTemplate().postForObject(environment.getProperty("mosip.iam.token_endpoint"), formData, String.class);
       if (responseJson==null || responseJson.isEmpty()) throw new BaseUncheckedException(Constants.TOKEN_GENERATION_FAILED_CODE, Constants.TOKEN_GENERATION_FAILED_MESSAGE);
