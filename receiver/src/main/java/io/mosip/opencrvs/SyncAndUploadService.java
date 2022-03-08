@@ -133,31 +133,16 @@ public class SyncAndUploadService {
 			// registrationSyncRequest.version = env.getProperty(Constants.REG_SYNC_APPLICATION_VERSION);
 			// registrationSyncRequest.requesttime = DateUtils.getUTCCurrentDateTimeString(env.getProperty(Constants.DATETIME_PATTERN));
 			// registrationSyncRequest.request = syncList;
-        // "{" +
-        // "\"id\":\"" + env.getProperty(Constants.REG_SYNC_SERVICE_ID) + "\"," +
-        // "\"version\":\"" + env.getProperty(Constants.REG_SYNC_APPLICATION_VERSION) + "\"," +
-        // "\"requesttime\":\"" + DateUtils.getUTCCurrentDateTimeString(env.getProperty(Constants.DATETIME_PATTERN)) + "\"," +
-        // "\"request\":[{" +
-        //   "\"registrationId\":\"" + regId + "\"," +
-        //   "\"packetId\":\"\"," +
-        //   "\"additionalInfoReqId\":\"\"," +
-        //   "\"name\":\"\"," +
-        //   "\"email\":\"\"," +
-        //   "\"phone\":\"\"," +
-        //   "\"registrationType\":\"" + regType + "\"," +
-        //   "\"packetHashValue\":\"" + HMACUtils2.digestAsPlainText(enryptedUinZipFile) + "\"," +
-        //   "\"packetSize\":" + BigInteger.valueOf(enryptedUinZipFile.length) + "," +
-        //   "\"supervisorStatus\":\"" + Constants.SUPERVISOR_STATUS_APPROVED + "\"," +
-        //   "\"supervisorComment\":\"" + Constants.SUPERVISOR_COMMENT + "\"," +
-        //   "\"optionalValues\":[]," +
-        //   "\"langCode\":\"" + "eng" + "\"," +
-        //   "\"createDateTime\":\"\"," +
-        //   "\"updateDateTime\":\"\"," +
-        //   "\"deletedDateTime\":\"\"," +
-        //   "\"isActive\":true," +
-        //   "\"isDeleted\":false" +
-        // "}]" +
-        // "}"
+			//
+			// String syncRequestString;
+			// try{
+			// 	syncRequestString = JsonUtils.javaObjectToJsonString(registrationSyncRequest);
+			// }
+			// catch(JsonProcessingException jpe){
+			// 	System.out.println("Hello Dear Friend ERROR : "+jpe);
+			// 	return FAILURE;
+			// }
+
 			String syncRequestString =
 				"{" +
         "\"id\":\"" + env.getProperty(Constants.REG_SYNC_SERVICE_ID) + "\"," +
@@ -174,31 +159,19 @@ public class SyncAndUploadService {
         "}]" +
         "}\n"
       ;
-
-			// String syncRequestString;
-			// try{
-			// 	syncRequestString = JsonUtils.javaObjectToJsonString(registrationSyncRequest);
-			// }
-			// catch(JsonProcessingException jpe){
-			// 	System.out.println("Hello Dear Friend ERROR : "+jpe);
-			// 	return FAILURE;
-			// }
+			
       LOGGER.debug(Constants.SESSION, Constants.ID, regId, "SyncAndUploadService::packetSync()::Sync service call started with request data : " + syncRequestString);
-      System.out.println("Hello dear friend 5 " + syncRequestString);
 
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
 			headers.add("Center-Machine-RefId", refId);
 			headers.add("timestamp", creationTime);
 
-			HttpEntity<Object> requestEntity = new HttpEntity<Object>(CryptoUtil.encodeToURLSafeBase64(crypto.encrypt(refId,syncRequestString.getBytes())).getBytes(), headers);
+			String encryptedString = "\"" + CryptoUtil.encodeToURLSafeBase64(crypto.encrypt(refId,syncRequestString.getBytes())) + "\"";
 
-			System.out.println("Hello dear friend 6.prev timestamp: " + creationTime + " encrypted encoded: " +  new String((byte[])requestEntity.getBody()));
-			System.out.println("Hello Dear Friend 6 " + JsonUtils.jsonStringToJavaObject(SyncServiceRequestDto.class,new String(crypto.decrypt(refId,CryptoUtil.decodeURLSafeBase64(new String((byte[])requestEntity.getBody()))))));
+			HttpEntity<Object> requestEntity = new HttpEntity<Object>(encryptedString.getBytes(), headers);
 
 			registrationSyncRes = selfTokenRestTemplate.postForObject(env.getProperty(Constants.APINAME_SYNCSERVICE), requestEntity, String.class);
-
-      System.out.println("Hello Dear Friend 7 " + registrationSyncRes);
 
       LOGGER.debug(Constants.SESSION, Constants.ID, regId, "SyncAndUploadService::packetSync()::Sync service call ended with response data : " + registrationSyncRes);
 

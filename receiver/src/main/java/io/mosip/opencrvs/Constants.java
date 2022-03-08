@@ -22,6 +22,7 @@ public class Constants{
   static String APINAME_MIDSCHEMAURL="MIDSCHEMAURL";
   static String APINAME_PACKETRECEIVER="PACKETRECEIVER";
   static String APINAME_SYNCSERVICE="SYNCSERVICE";
+  static String APINAME_RIDGENERATION="RIDGENERATION";
 
   static String DATETIME_PATTERN = "opencrvs.datetime.pattern";
 
@@ -46,6 +47,9 @@ public class Constants{
   static String API_RESOURCE_UNAVAILABLE_CODE="OPN-CRVS-004";
   static String API_RESOURCE_UNAVAILABLE_1_MESSAGE="Exception occurred while accessing ";
   static String API_RESOURCE_UNAVAILABLE_2_MESSAGE="Could not fetch idschema with version : ";
+
+  static String RID_GENERATE_EXCEPTION_CODE="OPN-CRVS-005";
+  static String RID_GENERATE_EXCEPTION_MESSAGE="Unable to generate RID for new packet ";
 
   static String UNKNOWN_EXCEPTION_CODE="OPN-CRVS-010";
   static String UNKNOWN_EXCEPTION_MESSAGE="Unknown Exception occured";

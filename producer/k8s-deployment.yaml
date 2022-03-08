@@ -4,9 +4,9 @@ metadata:
   name: opencrvs-confmap
 data:
   HOST: "0.0.0.0"
-  WEBHOOK_URL: "https://webhooks.zambia-uat.newlegacy.digital/webhooks"
-  AUTH_URL: "https://auth.zambia-uat.newlegacy.digital/"
-  CALLBACK_URL: "https://api.v3box1.mosip.net/opencrvs-mediator/webhooks"
+  WEBHOOK_URL: "https://webhooks.___OPENCRVS_ROOT_DOMAIN___/webhooks"
+  AUTH_URL: "https://auth.___OPENCRVS_ROOT_DOMAIN___/"
+  CALLBACK_URL: "https://___MOSIP_API_PUBLIC_HOST___/opencrvs-mediator/webhooks"
 ---
 apiVersion: v1
 kind: Secret

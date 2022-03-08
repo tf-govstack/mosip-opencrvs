@@ -99,8 +99,8 @@ class WebhooksRestController{
   //   return ResponseEntity.ok("{\"message\":\"Successfully unsubscribed\"}");
   // }
 
-  @PostMapping("/webhooks")
-  public ResponseEntity<String> postWebhooks(@RequestBody String body){
+  @PostMapping("/birth")
+  public ResponseEntity<String> postBirth(@RequestBody String body){
     try{
       File yourFile = new File(/*id*/ "datafile"+".json");
       yourFile.createNewFile();

@@ -14,8 +14,10 @@ import java.util.Iterator;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
+import org.json.JSONException;
+
+import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -88,25 +90,31 @@ class ReceiverCreatePacket {
 	// @Autowired
 	// AuditUtil audit;
 
+	String generateRegistrationId(String centerId, String machineId){
+		String response = selfTokenRestTemplate.getForObject(env.getProperty(Constants.APINAME_RIDGENERATION)+"/"+centerId+"/"+machineId,String.class);
+		try{
+			JSONObject responseJson = new JSONObject(response);
+			return responseJson.getJSONObject("response").getString("rid");
+		}
+		catch(JSONException je){
+			LOGGER.error(Constants.SESSION,Constants.ID,"generate RID", Constants.JSON_PROCESSING_EXCEPTION_MESSAGE);
+			throw new BaseUncheckedException(Constants.JSON_PROCESSING_EXCEPTION_CODE, Constants.JSON_PROCESSING_EXCEPTION_MESSAGE);
+		}
+	}
+
 	@Async
   public CompletableFuture<String> createPacket(String requestBody) throws BaseCheckedException, IOException {
 		// make some receivedto out of requestbody
-		ReceiveDto request = new ReceiveDto();
-		//for now hardcode values
-		request.identityJson = "{\"introducerBiometrics\":\"null\",\"identity\":{\"proofOfAddress\":{\"refNumber\":null,\"format\":\"pdf\",\"type\":\"Rental contract\",\"value\":\"POA_Passport_11344053174764080361\"},\"gender\":[{\"language\":\"fra\",\"value\":\"Femelle\"},{\"language\":\"ara\",\"value\":\"أنثى\"}],\"city\":[{\"language\":\"fra\",\"value\":\"KNT\"},{\"language\":\"ara\",\"value\":\"KNT\"},{\"language\":\"eng\",\"value\":\"?=$࿒ṭmy dòu﷖\"}],\"postalCode\":\"10114\",\"fullName\":[{\"language\":\"fra\",\"value\":\"mxtzozhksnmxyrbnjwfaocfseimfgu xzpteuglndbofqicwcacpcfcqozkof zjduxtapaarntmvwdfmblgsenkmjyo\"},{\"language\":\"ara\",\"value\":\"مكستزُزهكسنمكسيربنجوفَُكفسِِمفگُ كسزپتُِگلندبُفقِكوكَكپكفكقُزكُف زجدُكستَپََرنتمڤودفمبلگسِنكمجيُ\"},{\"language\":\"eng\",\"value\":\"mxtzozhksnmxyrbnjwfaocfseimfgu xzpteuglndbofqicwcacpcfcqozkof zjduxtapaarntmvwdfmblgsenkmjyo\"}],\"dateOfBirth\":\"2003/10/05\",\"proofOfIdentity\":{\"refNumber\":null,\"format\":\"pdf\",\"type\":\"Reference Identity Card\",\"value\":\"POI_Passport_11344053174764080361\"},\"individualBiometrics\":{\"format\":\"cbeff\",\"version\":1,\"value\":\"individualBiometrics_bio_CBEFF\"},\"IDSchemaVersion\":0.2,\"province\":[{\"language\":\"fra\",\"value\":\"KTA\"},{\"language\":\"ara\",\"value\":\"KTA\"},{\"language\":\"eng\",\"value\":\"Kénitra\"}],\"zone\":[{\"language\":\"fra\",\"value\":\"BNMR\"},{\"language\":\"ara\",\"value\":\"BNMR\"},{\"language\":\"eng\",\"value\":\"Ben Mansour\"}],\"phone\":\"9671086201\",\"addressLine1\":[{\"language\":\"fra\",\"value\":\"#201, 74 Street, 5 block, lane #1\"},{\"language\":\"ara\",\"value\":\"#٢٠١، ٧٤ سترِِت، ٥ بلُكك، لَنِ #١\"},{\"language\":\"eng\",\"value\":\"#201, 74 Street, 5 block, lane #1\"}],\"addressLine2\":[{\"language\":\"fra\",\"value\":\"#135, 45 Street, 7 block, lane #2\"},{\"language\":\"ara\",\"value\":\"#١٣٥، ٤٥ سترِِت، ٧ بلُكك، لَنِ #٢\"},{\"language\":\"eng\",\"value\":\"#135, 45 Street, 7 block, lane #2\"}],\"proofOfRelationship\":{\"refNumber\":null,\"format\":\"pdf\",\"type\":\"Passport\",\"value\":\"POR_Passport_11344053174764080361\"},\"residenceStatus\":[{\"language\":\"fra\",\"value\":\"Étrangère\"},{\"language\":\"ara\",\"value\":\"أجنبي\"}],\"addressLine3\":[{\"language\":\"fra\",\"value\":\"#506, 30 Street, 4 block, lane #3\"},{\"language\":\"ara\",\"value\":\"#٥٠٦، ٣٠ سترِِت، ٤ بلُكك، لَنِ #٣\"},{\"language\":\"eng\",\"value\":\"#506, 30 Street, 4 block, lane #3\"}],\"region\":[{\"language\":\"fra\",\"value\":\"RSK\"},{\"language\":\"ara\",\"value\":\"RSK\"},{\"language\":\"eng\",\"value\":\"?=\"}],\"email\":\"mxtzozhksnmxyrbnjwfaocfseimf.zjduxtapaarntmvwdfmblgsenkmj.128@mailinator.com\"}}";
-
-		request.idValue = "10001100771000120211005070910";
-		request.opencrvsId = "20210120001";
-		request.centerId = env.getProperty("opencrvs.center.id");
-		request.machineId = env.getProperty("opencrvs.machine.id");
-
-		// logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.UIN.toString(), request.getIdValue(), "ResidentUpdateServiceImpl::createPacket()");
-		byte[] packetZipBytes = null;
-		// audit.setAuditRequestDto(EventEnum.CREATE_PACKET);
-		// PackerGeneratorFailureDto dto = new PackerGeneratorFailureDto();
-		// if (validator.isValidCenter(request.getCenterId()) && validator.isValidMachine(request.getMachineId()) && request.getIdType().equals(ResidentIndividialIDType.UIN) ? validator.isValidRegistrationTypeAndUin(RegistrationType.RES_UPDATE.toString(), request.getIdValue()) : validator.isValidVid(request.getIdValue())) {
-
-			// logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.UIN.toString(), request.getIdValue(), "ResidentUpdateServiceImpl::createPacket()::validations for UIN,TYPE,CENTER,MACHINE are successful");
+		String centerId = env.getProperty("opencrvs.center.id");
+		String machineId = env.getProperty("opencrvs.machine.id");
+		ReceiveDto request ;
+		try{
+			request = ReceiveDto.build(requestBody, generateRegistrationId(centerId,machineId), centerId, machineId);
+		}
+		catch(Exception e){
+			LOGGER.error(Constants.SESSION,Constants.ID,"generate RID", Constants.RID_GENERATE_EXCEPTION_MESSAGE + e);
+			throw new BaseCheckedException(Constants.RID_GENERATE_EXCEPTION_CODE,Constants.RID_GENERATE_EXCEPTION_MESSAGE, e);
+		}
 
 		File file = null;
 
@@ -165,7 +173,7 @@ class ReceiverCreatePacket {
 
 			FileInputStream fis = new FileInputStream(file);
 
-			packetZipBytes = IOUtils.toByteArray(fis);
+			byte[] packetZipBytes = IOUtils.toByteArray(fis);
 
 			String packetCreatedDateTime = packetDto.getId().substring(packetDto.getId().length() - 14);
 			String formattedDate = packetCreatedDateTime.substring(0, 8) + "T" + packetCreatedDateTime.substring(packetCreatedDateTime.length() - 6);

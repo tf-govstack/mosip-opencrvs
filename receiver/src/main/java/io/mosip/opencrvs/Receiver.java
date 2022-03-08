@@ -1,6 +1,7 @@
 package io.mosip.opencrvs;
 
 import java.io.IOException;
+import java.util.Collections;
 
 import javax.annotation.PreDestroy;
 
@@ -12,6 +13,7 @@ import org.apache.http.impl.cookie.BasicClientCookie;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -21,6 +23,10 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpRequest;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.client.ClientHttpRequestExecution;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.CompletableFuture;
@@ -49,12 +55,21 @@ public class Receiver {
 	}
 
 	@Bean
+	@ConditionalOnProperty(name="kernel.auth.adapter.available",havingValue="false",matchIfMissing=false)
 	public RestTemplate selfTokenRestTemplate() throws IOException {
-		BasicCookieStore cookieStore = new BasicCookieStore();
-		BasicClientCookie cookie = new BasicClientCookie("Authorization",Utilities.getToken(env));
-		cookie.setDomain(env.getProperty("mosip.api.internal.host"));
-		cookieStore.addCookie(cookie);
-		return new RestTemplate(new HttpComponentsClientHttpRequestFactory(HttpClientBuilder.create().setDefaultCookieStore(cookieStore).build()));
+		// BasicCookieStore cookieStore = new BasicCookieStore();
+		// BasicClientCookie cookie = new BasicClientCookie("Authorization",Utilities.getToken(env));
+		// cookie.setDomain(env.getProperty("mosip.api.internal.host"));
+		// cookieStore.addCookie(cookie);
+		RestTemplate restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory(HttpClientBuilder.create().disableCookieManagement().build()));
+		restTemplate.setInterceptors(Collections.singletonList(new ClientHttpRequestInterceptor(){
+			@Override
+			public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException{
+				request.getHeaders().set("Cookie","Authorization="+Utilities.getToken(env));	
+				return execution.execute(request, body);
+			}
+		}));
+		return restTemplate;
 	}
 
 	public static void main(String[] args){
