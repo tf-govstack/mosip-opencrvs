@@ -14,6 +14,7 @@
 		<kernel-keymanager-service.version>1.2.0</kernel-keymanager-service.version>
 		<kernel-auth-adapter.version>1.2.0</kernel-auth-adapter.version>
 		<apache.httpcomponents.version>4.5.6</apache.httpcomponents.version>
+		<apache.kafka.version>3.1.0</apache.kafka.version>
 		<apache.activemq.version>5.16.3</apache.activemq.version>
 		<spring.boot.version>2.0.2.RELEASE</spring.boot.version>
     <spring.cloud.version>2020.0.0</spring.cloud.version>
@@ -83,6 +84,11 @@
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
 			<version>${apache.httpcomponents.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.kafka</groupId>
+			<artifactId>kafka-clients</artifactId>
+			<version>${apache.kafka.version}</version>
 		</dependency>
 
 		<dependency>
@@ -244,7 +250,7 @@
 		            <configuration>
 		                <classifier>spring-boot</classifier>
 		                <mainClass>
-		                  io.mosip.opencrvs.Receiver
+		                  io.mosip.opencrvs.Mediator
 		                </mainClass>
 		            </configuration>
 		        </execution>

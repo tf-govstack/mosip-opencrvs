@@ -1,4 +1,6 @@
-package io.mosip.opencrvs;
+package io.mosip.opencrvs.dto;
+
+// Class not in use
 
 import java.io.Serializable;
 import java.math.BigInteger;

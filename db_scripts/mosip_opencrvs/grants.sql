@@ -1,0 +1,16 @@
+\c mosip_opencrvs
+
+GRANT CONNECT
+   ON DATABASE mosip_opencrvs
+   TO opencrvsuser;
+
+GRANT USAGE
+   ON SCHEMA opencrvs
+   TO opencrvsuser;
+
+GRANT SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES
+   ON ALL TABLES IN SCHEMA opencrvs
+   TO opencrvsuser;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA opencrvs
+	GRANT SELECT,INSERT,UPDATE,DELETE,REFERENCES ON TABLES TO opencrvsuser;

@@ -1,21 +1,10 @@
-package io.mosip.opencrvs;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-
-import java.util.concurrent.CompletableFuture;
-
-import org.json.JSONObject;
-import org.json.JSONException;
+package io.mosip.opencrvs.controller;
 
 import org.springframework.core.env.Environment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -26,24 +15,37 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
-@RestController
-class WebhooksRestController{
+import io.mosip.kernel.core.logger.spi.Logger;
 
-  RestTemplate restTemplate = new RestTemplate();
+import io.mosip.opencrvs.constant.Constants;
+import io.mosip.opencrvs.constant.LoggingConstants;
+import io.mosip.opencrvs.error.ErrorCode;
+import io.mosip.opencrvs.util.RestUtil;
+import io.mosip.opencrvs.util.LogUtil;
+import io.mosip.opencrvs.service.Producer;
+
+@RestController
+public class WebhooksRestController{
+
+  private static final Logger LOGGER = LogUtil.getLogger(WebhooksRestController.class);
 
   @Autowired
   Environment env;
 
   @Autowired
-  ReceiverCreatePacket receiverCreatePacket;
+  Producer producer;
+
+  @Autowired
+  RestUtil restUtil;
 
   @GetMapping("/ping")
   public String ping(){
     return "ok";
   }
 
-  @GetMapping("/webhooks")
-  public ResponseEntity<String> getWebhooks(@RequestParam String mode, @RequestParam String challenge, @RequestParam String topic){
+  @GetMapping("/birth")
+  public ResponseEntity<String> getBirth(@RequestParam String mode, @RequestParam String challenge, @RequestParam String topic){
+    LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID, "RestController", "GET /birth; mode + "+ mode +" challenge: "+challenge+" topic: "+topic);
     if((!mode.equals("subscribe"))||(!topic.equals("BIRTH_REGISTERED")) ){
       return ResponseEntity.badRequest().build();
     }
@@ -52,25 +54,21 @@ class WebhooksRestController{
 
   @PostMapping("/subscribe")
   public ResponseEntity<String> postSubscribe(){
-    //get authtoken
-    HttpHeaders requestHeaders = new HttpHeaders();
-    requestHeaders.setContentType(MediaType.APPLICATION_JSON);
-    HttpEntity<String> request = new HttpEntity<>("{\"client_id\":\""+ env.getProperty("opencrvs.client.id") +"\",\"client_secret\":\""+ env.getProperty("opencrvs.client.secret.key") +"\"}",requestHeaders);
-    ResponseEntity<String> responseForRequest = restTemplate.postForEntity(env.getProperty("opencrvs.auth.url")+"/authenticateSystemClient", request, String.class);
-    if(!responseForRequest.getStatusCode().equals(HttpStatus.OK)){
-      return ResponseEntity.badRequest().body("{\"message\":\"Cannot get auth token\"}");
+    LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID, "RestController", "POST /subscribe");
+    try{
+      restUtil.webhooksSubscribe();
     }
-    String token;
-    try{token = (String) new JSONObject(responseForRequest.getBody()).get("token");}
-    catch(JSONException e){return new ResponseEntity<>("{\"message\":\"Cannot understand token\"}",HttpStatus.INTERNAL_SERVER_ERROR);}
-
-    //subscribe
-    requestHeaders = new HttpHeaders();
-    requestHeaders.setContentType(MediaType.APPLICATION_JSON);
-    requestHeaders.set("Authorization","Bearer "+token);
-    request = new HttpEntity<>("{\"hub\":{\"callback\":\""+ env.getProperty("opencrvs.callback.url") +"\",\"mode\":\"subscribe\",\"secret\":\""+ env.getProperty("opencrvs.client.sha.secret") +"\",\"topic\":\"BIRTH_REGISTERED\"}}",requestHeaders);
-    responseForRequest = restTemplate.postForEntity(env.getProperty("opencrvs.webhooks.url"), request, String.class);
-    if(responseForRequest.getStatusCode().equals(HttpStatus.ACCEPTED)) return new ResponseEntity("{\"message\":\"Error while subscription\"}",HttpStatus.INTERNAL_SERVER_ERROR);
+    catch(Exception e){
+      if(e.getMessage().equals(ErrorCode.AUTH_TOKEN_EXCEPTION)){
+        return ResponseEntity.badRequest().body("{\"message\":\"Cannot get auth token\"}");
+      }
+      else if(e.getMessage().equals(ErrorCode.TOKEN_PARSING_EXCEPTION)){
+        return new ResponseEntity<>("{\"message\":\"Cannot understand token\"}",HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      else if(e.getMessage().equals(ErrorCode.SUBSCRIBE_FAILED_EXCEPTION)){
+        return new ResponseEntity("{\"message\":\"Error while subscription\"}",HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+    }
     return ResponseEntity.ok("{\"message\":\"Successfully subscribed\"}");
   }
 
@@ -99,18 +97,14 @@ class WebhooksRestController{
   //   return ResponseEntity.ok("{\"message\":\"Successfully unsubscribed\"}");
   // }
 
-  @PostMapping("/birth")
+  @PostMapping(value="/birth",consumes=MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<String> postBirth(@RequestBody String body){
+    LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID, "RestController", "POST /birth; data: " + body);
     try{
-      File yourFile = new File(/*id*/ "datafile"+".json");
-      yourFile.createNewFile();
-      FileOutputStream oFile = new FileOutputStream(yourFile, false);
-      oFile.write(body.getBytes());
-    } catch(IOException ioe){}
-
-    try{
-      CompletableFuture<String> cf = receiverCreatePacket.createPacket(body);
-    } catch(Exception be){/*Already Logged*/}
+      producer.produce(body);
+    } catch(Exception e){
+      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"RestController","POST / birth; Error while producing data " + e);
+    }
 
     return ResponseEntity.ok(Constants.PACKET_CREATION_STARTED);
   }

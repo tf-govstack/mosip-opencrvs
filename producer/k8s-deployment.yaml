@@ -99,9 +99,9 @@ spec:
           x-forwarded-proto: https
     match:
     - uri:
-        prefix: /opencrvs-mediator/
+        exact: /opencrvs-mediator/birth
     rewrite:
-      uri: /
+      uri: /birth
     route:
     - destination:
         host: opencrvs-mediator

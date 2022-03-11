@@ -1,8 +1,9 @@
-package io.mosip.opencrvs;
+package io.mosip.opencrvs.dto;
 
-import java.io.IOException;
+import lombok.Data;
 
-class ReceiveDto {
+@Data
+public class ReceiveDto {
 	String idValue;
 	String centerId;
 	String machineId;
@@ -13,9 +14,8 @@ class ReceiveDto {
 	String proofOfDateOfBirth;
   String opencrvsId;
 
-	static ReceiveDto build(String opencrvsRequestBody, String rid, String centerId, String machineId) throws IOException{
+	public static ReceiveDto build(String opencrvsRequestBody, String rid, String centerId, String machineId){
 		ReceiveDto returner = new ReceiveDto();
-		System.out.println("Hello rid: "+rid);
 		// TODO
 		returner.idValue = rid;
 		returner.centerId = centerId;
