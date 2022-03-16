@@ -1,5 +1,6 @@
 package io.mosip.opencrvs.controller;
 
+import io.mosip.kernel.core.exception.ExceptionUtils;
 import org.springframework.core.env.Environment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -103,7 +104,7 @@ public class WebhooksRestController{
     try{
       producer.produce(body);
     } catch(Exception e){
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"RestController","POST / birth; Error while producing data " + e);
+      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"RestController","POST / birth; Error while producing data " + ExceptionUtils.getStackTrace(e));
     }
 
     return ResponseEntity.ok(Constants.PACKET_CREATION_STARTED);

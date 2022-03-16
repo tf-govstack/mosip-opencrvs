@@ -2,6 +2,7 @@ package io.mosip.opencrvs.util;
 
 import java.sql.Timestamp;
 
+import io.mosip.kernel.core.exception.ExceptionUtils;
 import org.springframework.dao.DataAccessException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,7 +36,7 @@ public class JdbcUtil{
       String str = jdbcTemplate.queryForObject("SELECT txn_id FROM "+birthTableName+" WHERE txn_id=\'"+txnId+"\';", String.class);
       if(str != null)if(!str.isEmpty()) return true;
     } catch(DataAccessException dae){
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Error getting status from table "+dae);
+      LOGGER.info(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Transaction Id not present in db");
     }
     return false;
   }
@@ -46,7 +47,7 @@ public class JdbcUtil{
     try{
       jdbcTemplate.update("INSERT into "+birthTableName+" (txn_id, cr_by, cr_dtimes) VALUES (\'"+txnId+"\',\'"+crBy+"\',\'"+crDtimes+"\');");
     } catch(DataAccessException dae){
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Error inserting data into table "+dae);
+      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Error inserting data into table " + ExceptionUtils.getStackTrace(dae));
     }
   }
 
@@ -56,7 +57,7 @@ public class JdbcUtil{
     try{
       jdbcTemplate.update("UPDATE "+birthTableName+" SET status=\'"+status+"\', upd_by=\'"+crBy+"\', upd_dtimes=\'"+updDtimes+"\' WHERE txn_id=\'"+txnId+"\';");
     } catch(DataAccessException dae){
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Error updating status in table "+dae);
+      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Error updating status in table " + ExceptionUtils.getStackTrace(dae));
     }
   }
 
@@ -66,7 +67,7 @@ public class JdbcUtil{
     try{
       jdbcTemplate.update("UPDATE "+birthTableName+" SET status=\'"+status+"\', upd_by=\'"+crBy+"\', upd_dtimes=\'"+updDtimes+"\' WHERE rid=\'"+rid+"\';");
     } catch(DataAccessException dae){
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc rid - "+rid,"Error updating status in table "+dae);
+      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc rid - "+rid,"Error updating status in table " + ExceptionUtils.getStackTrace(dae));
     }
   }
 
@@ -76,7 +77,7 @@ public class JdbcUtil{
     try{
       jdbcTemplate.update("UPDATE "+birthTableName+" SET rid=\'"+rid+"\', status=\'"+status+"\', upd_by=\'"+crBy+"\', upd_dtimes=\'"+updDtimes+"\' WHERE txn_id=\'"+txnId+"\';");
     } catch(DataAccessException dae){
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Error updating rid and status in table "+dae);
+      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Error updating rid and status in table " + ExceptionUtils.getStackTrace(dae));
     }
   }
 
@@ -84,7 +85,7 @@ public class JdbcUtil{
     try{
       return jdbcTemplate.queryForObject("SELECT status FROM "+birthTableName+" WHERE txn_id=\'"+txnId+"\';", String.class);
     } catch(DataAccessException dae){
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Error getting status from table "+dae);
+      LOGGER.warn(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Unable to get status for txn from table " + ExceptionUtils.getStackTrace(dae));
       return null;
     }
   }
@@ -93,7 +94,7 @@ public class JdbcUtil{
     try{
       return jdbcTemplate.queryForObject("SELECT rid FROM "+birthTableName+" WHERE txn_id=\'"+txnId+"\';", String.class);
     } catch(DataAccessException dae){
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Error getting rid from table "+dae);
+      LOGGER.warn(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Unable to get rid for txn from table " + ExceptionUtils.getStackTrace(dae));
       return null;
     }
   }

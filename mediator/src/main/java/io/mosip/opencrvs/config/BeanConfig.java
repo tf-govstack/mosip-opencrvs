@@ -40,28 +40,28 @@ import io.mosip.opencrvs.util.LogUtil;
 @Configuration
 public class BeanConfig{
 
-  private static Logger LOGGER = LogUtil.getLogger(BeanConfig.class);
+	private static Logger LOGGER = LogUtil.getLogger(BeanConfig.class);
 
 	@Autowired
 	private Environment env;
 
 	@Bean
 	public Executor taskExecutor() {
-	  ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-	  executor.setCorePoolSize(Integer.parseInt(env.getProperty("receiver.core.pool.size")));
-	  executor.setMaxPoolSize(Integer.parseInt(env.getProperty("receiver.max.pool.size")));
-	  executor.setQueueCapacity(Integer.parseInt(env.getProperty("receiver.queue.capacity")));
-	  executor.setThreadNamePrefix("Mediator-");
-	  executor.initialize();
-	  return executor;
-  }
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.setCorePoolSize(Integer.parseInt(env.getProperty("receiver.core.pool.size")));
+		executor.setMaxPoolSize(Integer.parseInt(env.getProperty("receiver.max.pool.size")));
+		executor.setQueueCapacity(Integer.parseInt(env.getProperty("receiver.queue.capacity")));
+		executor.setThreadNamePrefix("Mediator-");
+		executor.initialize();
+		return executor;
+	}
 
 	@Bean
-  @Primary
-  @ConfigurationProperties(prefix="mosip.opencrvs.db.datasource")
-  public DataSource mosipOpencrvsDbDatasource() {
-    return DataSourceBuilder.create().build();
-  }
+	@Primary
+	@ConfigurationProperties(prefix="mosip.opencrvs.db.datasource")
+	public DataSource mosipOpencrvsDbDatasource() {
+		return DataSourceBuilder.create().build();
+	}
 
 	@Bean
 	@ConditionalOnProperty(name="kernel.auth.adapter.available",havingValue="false",matchIfMissing=false)
@@ -70,15 +70,15 @@ public class BeanConfig{
 		restTemplate.setInterceptors(Collections.singletonList(new ClientHttpRequestInterceptor(){
 			@Override
 			public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution){
-        try{
-          String mosipAuthToken = RestUtil.getMosipAuthToken(env);
-  				request.getHeaders().set("Cookie","Authorization="+mosipAuthToken);
-  				return execution.execute(request, body);
-        } catch(BaseCheckedException e){
-          throw new RestClientException("Unable to get mosip auth token",e);
-        } catch(IOException e){
-          throw new RestClientException("Some Error while making call",e);
-        }
+				try{
+					String mosipAuthToken = RestUtil.getMosipAuthToken(env);
+					request.getHeaders().set("Cookie","Authorization="+mosipAuthToken);
+					return execution.execute(request, body);
+				} catch(BaseCheckedException e){
+					throw new RestClientException("Unable to get mosip auth token",e);
+				} catch(IOException e){
+					throw new RestClientException("Some Error while making call",e);
+				}
 			}
 		}));
 		return restTemplate;

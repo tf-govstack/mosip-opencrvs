@@ -2,6 +2,7 @@ package io.mosip.opencrvs.config;
 
 import javax.annotation.PreDestroy;
 
+import io.mosip.kernel.core.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.core.env.Environment;
@@ -23,21 +24,21 @@ import io.mosip.opencrvs.util.KafkaUtil;
 @Configuration
 public class AppInitConfig{
 
-  private static final Logger LOGGER = LogUtil.getLogger(AppInitConfig.class);
+	private static final Logger LOGGER = LogUtil.getLogger(AppInitConfig.class);
 
-  @Autowired
-  private Environment env;
+	@Autowired
+	private Environment env;
 
-  @Autowired
-  private RestUtil restUtil;
+	@Autowired
+	private RestUtil restUtil;
 
-  @Autowired
-  private KafkaUtil kafkaUtil;
+	@Autowired
+	private KafkaUtil kafkaUtil;
 
-  @Autowired
-  private Receiver receiver;
+	@Autowired
+	private Receiver receiver;
 
-  @EventListener(ApplicationReadyEvent.class)
+	@EventListener(ApplicationReadyEvent.class)
 	public void init() throws BaseCheckedException{
 		if(env.getProperty("opencrvs.subscribe.startup").equals("true")){
 			try{
@@ -46,23 +47,23 @@ public class AppInitConfig{
 				LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Subscription Successful");
 			}
 			catch(Exception e){
-				LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Unable to subscribe to opencrvs, exception: "+e);
+				LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Unable to subscribe to opencrvs, exception: "+ ExceptionUtils.getStackTrace(e));
 			}
 		}
-    kafkaUtil.createTopicIfNotExist(env.getProperty("mosip.opencrvs.kafka.topic"),1,(short)1);
+		kafkaUtil.createTopicIfNotExist(env.getProperty("mosip.opencrvs.kafka.topic"),1,(short)1);
 
-    receiver.receive();
-    LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Started Receiver.");
+		receiver.receive();
+		LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Started Receiver.");
 	}
 
 	@PreDestroy
 	public void tearDown(){
 		try{
-      // Unsubscribe here
+			// Unsubscribe here
 			LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Unsubscribe Successful");
 		}
 		catch(Exception e){
-      LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Error while unsubscribing " + e);
-    }
+			LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Error while unsubscribing " + ExceptionUtils.getStackTrace(e));
+		}
 	}
 }

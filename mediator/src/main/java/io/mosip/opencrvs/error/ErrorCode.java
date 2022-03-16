@@ -23,6 +23,9 @@ public class ErrorCode{
   public static final String RID_GENERATE_EXCEPTION_CODE="OPN-CRVS-005";
   public static final String RID_GENERATE_EXCEPTION_MESSAGE="Unable to generate RID for new packet ";
 
+  public static final String IDJSON_BUILD_EXCEPTION_CODE="OPN-CRVS-006";
+  public static final String IDJSON_BUILD_EXCEPTION_MESSAGE="Unable to build idJson Fields from opencrvs message body ";
+
   public static final String UNKNOWN_EXCEPTION_CODE="OPN-CRVS-010";
   public static final String UNKNOWN_EXCEPTION_MESSAGE="Unknown Exception occured";
 

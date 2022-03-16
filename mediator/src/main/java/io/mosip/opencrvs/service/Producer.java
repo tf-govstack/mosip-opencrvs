@@ -1,5 +1,7 @@
 package io.mosip.opencrvs.service;
 
+import io.mosip.opencrvs.dto.ReceiveDto;
+import io.mosip.opencrvs.util.OpencrvsDataUtil;
 import org.json.JSONObject;
 import org.json.JSONException;
 
@@ -24,18 +26,11 @@ public class Producer{
   @Autowired
   private KafkaUtil kafkaUtil;
 
+  @Autowired
+  private OpencrvsDataUtil opencrvsDataUtil;
+
   public void produce(String data) {
     String topicName = env.getProperty("mosip.opencrvs.kafka.topic");
-    kafkaUtil.syncPutMessageInKafka(topicName,getIdFromBody(data),data);
-  }
-
-  public static String getIdFromBody(String requestBody){
-    try{
-      return new JSONObject(requestBody).getString("id");
-
-    }
-    catch(JSONException je){
-      throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting txn_id ",je);
-    }
+    kafkaUtil.syncPutMessageInKafka(topicName, opencrvsDataUtil.getTxnIdFromBody(data),data);
   }
 }

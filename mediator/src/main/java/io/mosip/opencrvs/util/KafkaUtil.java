@@ -7,6 +7,7 @@ import java.util.Properties;
 import java.util.concurrent.Future;
 import javax.annotation.PostConstruct;
 
+import io.mosip.kernel.core.exception.ExceptionUtils;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.AdminClientConfig;
@@ -81,7 +82,7 @@ public class KafkaUtil{
       kafkaAdmin.listTopics().names().get();
     }
     catch(Exception e){
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"KafkaUtil","Error connecting to kafka " + e);
+      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"KafkaUtil","Error connecting to kafka " + ExceptionUtils.getStackTrace(e));
       throw new BaseUncheckedException(ErrorCode.KAFKA_CONNECTION_EXCEPTION_CODE,ErrorCode.KAFKA_CONNECTION_EXCEPTION_MESSAGE,e);
     }
   }
@@ -97,7 +98,7 @@ public class KafkaUtil{
       }
     }
     catch(Exception e){
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"KafkaUtil","Error creating topic " + e);
+      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"KafkaUtil","Error creating topic " + ExceptionUtils.getStackTrace(e));
       throw new BaseUncheckedException(ErrorCode.KAFKA_TOPIC_CREATE_EXCEPTION_CODE,ErrorCode.KAFKA_TOPIC_CREATE_EXCEPTION_MESSAGE,e);
     }
 
@@ -117,7 +118,7 @@ public class KafkaUtil{
       }
     }
     catch(Exception e){
-      LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "Kafka Key - "+key, "Error putting message : "+e);
+      LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "Kafka Key - "+key, "Error putting message : "+ ExceptionUtils.getStackTrace(e));
       throw new BaseUncheckedException(ErrorCode.KAFKA_MSG_SEND_EXCEPTION_CODE,ErrorCode.KAFKA_MSG_SEND_EXCEPTION_MESSAGE,e);
     }
     LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "Kafka Key - "+key, "Message sent.");
