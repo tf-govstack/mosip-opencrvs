@@ -37,7 +37,7 @@ jobs:
         mvn -B clean package
 
     - name: Ready the springboot artifacts
-      run: find -name '*.jar' -executable -type f  -exec zip release.zip {} +
+      run: find -name '*.jar' -type f  -exec zip release.zip {} +
 
     - name: Upload the springboot jars
       uses: actions/upload-artifact@v1
@@ -55,9 +55,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v1
-          with:
-            name: release
-            path: ./
+        with:
+          name: release
+          path: ./
 
       - name: Setup branch and version
         run: |
