@@ -55,9 +55,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v1
-          with:
-            name: release
-            path: ./
+        with:
+          name: release
+          path: ./
 
       - name: Setup branch and version
         run: |
