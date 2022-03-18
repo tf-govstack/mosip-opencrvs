@@ -48,9 +48,9 @@ public class BeanConfig{
 	@Bean
 	public Executor taskExecutor() {
 		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-		executor.setCorePoolSize(Integer.parseInt(env.getProperty("receiver.core.pool.size")));
-		executor.setMaxPoolSize(Integer.parseInt(env.getProperty("receiver.max.pool.size")));
-		executor.setQueueCapacity(Integer.parseInt(env.getProperty("receiver.queue.capacity")));
+		executor.setCorePoolSize(Integer.parseInt(env.getProperty("mediator.core.pool.size")));
+		executor.setMaxPoolSize(Integer.parseInt(env.getProperty("mediator.max.pool.size")));
+		executor.setQueueCapacity(Integer.parseInt(env.getProperty("mediator.queue.capacity")));
 		executor.setThreadNamePrefix("Mediator-");
 		executor.initialize();
 		return executor;
