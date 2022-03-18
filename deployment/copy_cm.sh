@@ -2,7 +2,7 @@
 # Copy configmaps from other namespaces
 # DST_NS: Destination namespace 
 
-COPY_UTIL=../../utils/copy_cm_func.sh
+COPY_UTIL=./copy_cm_func.sh
 DST_NS=opencrvs
 
 $COPY_UTIL configmap global default $DST_NS 
