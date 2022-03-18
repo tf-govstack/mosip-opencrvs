@@ -20,6 +20,7 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.*;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -135,6 +136,22 @@ public class RestUtil{
     catch(JSONException je){
       throw new BaseUncheckedException(ErrorCode.TOKEN_GENERATION_FAILED_CODE, ErrorCode.TOKEN_GENERATION_FAILED_MESSAGE);
     }
+  }
+
+  @Async
+  public void asyncWebhooksSubscribe() {
+      String subscribeStartupDelayMs = env.getProperty("opencrvs.subscribe.startup.delay.ms");
+      try{
+          Thread.sleep(Long.valueOf(subscribeStartupDelayMs));
+      } catch (Exception ignored) {}
+      try{
+          String res = webhooksSubscribe();
+          // if(res!="Success"){LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Unable to subscribe to opencrvs, response: "+res);}
+          LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Subscription Successful");
+      }
+      catch(Exception e){
+          LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Unable to subscribe to opencrvs, exception: "+ ExceptionUtils.getStackTrace(e));
+      }
   }
 
   public String webhooksSubscribe() throws Exception{
