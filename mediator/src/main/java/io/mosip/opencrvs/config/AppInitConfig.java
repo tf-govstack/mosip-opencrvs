@@ -41,14 +41,7 @@ public class AppInitConfig{
 	@EventListener(ApplicationReadyEvent.class)
 	public void init() throws BaseCheckedException{
 		if("true".equals(env.getProperty("opencrvs.subscribe.startup"))){
-			try{
-				String res = restUtil.webhooksSubscribe();
-				// if(res!="Success"){LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Unable to subscribe to opencrvs, response: "+res);}
-				LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Subscription Successful");
-			}
-			catch(Exception e){
-				LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Unable to subscribe to opencrvs, exception: "+ ExceptionUtils.getStackTrace(e));
-			}
+			restUtil.asyncWebhooksSubscribe();
 		}
 		kafkaUtil.createTopicIfNotExist(env.getProperty("mosip.opencrvs.kafka.topic"),1,(short)1);
 
