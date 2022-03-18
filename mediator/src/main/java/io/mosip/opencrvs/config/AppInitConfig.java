@@ -40,7 +40,7 @@ public class AppInitConfig{
 
 	@EventListener(ApplicationReadyEvent.class)
 	public void init() throws BaseCheckedException{
-		if(env.getProperty("opencrvs.subscribe.startup").equals("true")){
+		if("true".equals(env.getProperty("opencrvs.subscribe.startup"))){
 			try{
 				String res = restUtil.webhooksSubscribe();
 				// if(res!="Success"){LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Unable to subscribe to opencrvs, response: "+res);}

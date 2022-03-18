@@ -143,7 +143,7 @@ public class RestUtil{
     String opencrvsClientShaSecret = env.getProperty("opencrvs.client.sha.secret");
     String opencrvsAuthUrl = env.getProperty("opencrvs.auth.url");
     String opencrvsWebhooksUrl = env.getProperty("opencrvs.webhooks.url");
-    String opencrvsCallbackUrl = env.getProperty("opencrvs.callback.url");
+    String opencrvsBirthCallbackUrl = env.getProperty("opencrvs.birth.callback.url");
 
     RestTemplate restTemplate = new RestTemplate();
     HttpHeaders requestHeaders = new HttpHeaders();
@@ -168,7 +168,7 @@ public class RestUtil{
     requestHeaders = new HttpHeaders();
     requestHeaders.setContentType(MediaType.APPLICATION_JSON);
     requestHeaders.set("Authorization","Bearer "+token);
-    request = new HttpEntity<>("{\"hub\":{\"callback\":\""+ opencrvsCallbackUrl +"\",\"mode\":\"subscribe\",\"secret\":\""+ opencrvsClientShaSecret +"\",\"topic\":\"BIRTH_REGISTERED\"}}",requestHeaders);
+    request = new HttpEntity<>("{\"hub\":{\"callback\":\""+ opencrvsBirthCallbackUrl +"\",\"mode\":\"subscribe\",\"secret\":\""+ opencrvsClientShaSecret +"\",\"topic\":\"BIRTH_REGISTERED\"}}",requestHeaders);
     try{responseForRequest = restTemplate.postForEntity(opencrvsWebhooksUrl, request, String.class);}
     catch(RestClientException e){
       throw new Exception(ErrorCode.SUBSCRIBE_FAILED_EXCEPTION);
