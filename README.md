@@ -8,6 +8,10 @@ _This is work-in-progress_.
 ## License
 This project is licensed under the terms of [Mozilla Public License 2.0](LICENSE).
 
+## Deployment
+- This project is available as installable [helm chart](https://github.com/mosip/mosip-helm/tree/1.2.0/charts/opencrvs-mediator).
+- Refer to [deployment instructions](./deployment), for installing the project on a kubenetes cluster using the above helm chart. 
+
 ## Notes
 - Dummy *centerId* and *machineId* are being used in properties. These are not part of `mosip_master` db.
 - Keymanager is being used to encrypt and decrypt packet, the same above *ref_id* (`centerId_machineId`) is being used. Keymanager will already take care of creating the appropriate keys if this ref_id is not present in its db.
@@ -30,10 +34,4 @@ This project is licensed under the terms of [Mozilla Public License 2.0](LICENSE
   - Will modify the above step proper introducer data later.
 - For structure of data being received from Opencrvs, refer to their [Webhooks Integration document](https://documentation.opencrvs.org/opencrvs-core/docs/technology/webhooks/).
 
-Some Developer Notes:
-- Create `mosip-opencrvs-client` as part of keycloak-init. And use that in properties. TODO
-- Update postgres-init to include `mosip-opencrvs` db. TODO.
-- Use `kernel-auth-adapter`, and remove the dummy adapter in code. TODO.
-- Create docker, helm chart in mosip-helm, and add ci to github. TODO.
-- Create testcases. TODO.
-- Analyze with sonar cloud. Publish snapshots to ossrh. TODO.
+Refer to [Dev Notes](./dev-notes.md).

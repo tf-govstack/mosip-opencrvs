@@ -40,9 +40,9 @@ public class AppInitConfig{
 
 	@EventListener(ApplicationReadyEvent.class)
 	public void init() throws BaseCheckedException{
-		if("true".equals(env.getProperty("opencrvs.subscribe.startup"))){
-			restUtil.asyncWebhooksSubscribe();
-		}
+		//if("true".equals(env.getProperty("opencrvs.subscribe.startup"))){
+		//	restUtil.asyncWebhooksSubscribe();
+		//}
 		kafkaUtil.createTopicIfNotExist(env.getProperty("mosip.opencrvs.kafka.topic"),1,(short)1);
 
 		receiver.receive();

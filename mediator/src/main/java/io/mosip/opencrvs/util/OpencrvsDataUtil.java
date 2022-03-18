@@ -90,7 +90,7 @@ public class OpencrvsDataUtil {
                 "\"zone\":" + dummyZone + "," +
                 "\"postalCode\":" + dummyPostalCode + "," +
                 "\"phone\":" + getPhoneFromTaskBody(task) + "," +
-                "\"email\":\"" + getEmailFromPatientBody(patient) +
+                "\"email\":" + getEmailFromPatientBody(patient) +
                 //"," +
                 //"\"proofOfIdentity\":{" +
                 //    "\"refNumber\":null," +
@@ -106,8 +106,6 @@ public class OpencrvsDataUtil {
                 //"}" +
             "}" +
         "}");
-
-        System.out.println("Hello 1" + returner.getIdentityJson());
 
         return returner;
     }
@@ -133,8 +131,8 @@ public class OpencrvsDataUtil {
 
             ret+="[";
             for (int i=0;i<names.length();i++){
-                String givenName = names.getJSONObject(i).getJSONArray("given").join(" ");
-                String familyName = names.getJSONObject(i).getJSONArray("family").join(" ");
+                String givenName = names.getJSONObject(i).getJSONArray("given").join(" ").replaceAll("\\s","").replaceAll("\"","");
+                String familyName = names.getJSONObject(i).getJSONArray("family").join(" ").replaceAll("\\s","").replaceAll("\"","");
                 String langCode = names.getJSONObject(i).getString("use");
 
                 boolean isSet = false;
@@ -154,7 +152,7 @@ public class OpencrvsDataUtil {
                     "\"language\":\""+langCode+"\"," +
                     "\"value\":\""+ givenName + " " + familyName + "\"" +
                 "}";
-                if(i!=names.length()) ret+=",";
+                if(i!=names.length()-1) ret+=",";
             }
             ret+="]";
             return ret;
@@ -178,8 +176,8 @@ public class OpencrvsDataUtil {
     public String getEmailFromPatientBody(JSONObject patient){
         try{
             JSONObject defaultName = patient.getJSONArray("name").getJSONObject(0);
-            String givenName = defaultName.getJSONArray("given").join(".").toLowerCase();
-            String familyName = defaultName.getJSONArray("family").join(".").toLowerCase();
+            String givenName = defaultName.getJSONArray("given").join(".").replaceAll("\\s","").replaceAll("\"","").toLowerCase();
+            String familyName = defaultName.getJSONArray("family").join(".").replaceAll("\\s","").replaceAll("\"","").toLowerCase();
             return "\"" + givenName + "." + familyName + ".123@mailinator.com\"";
         } catch(JSONException je){
             throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting email id from request ",je);
@@ -188,7 +186,7 @@ public class OpencrvsDataUtil {
 
     public String getDOBFromPatientBody(JSONObject patient){
         try{
-            return patient.getString("birthDate").replaceAll("-","\\/");
+            return "\""+patient.getString("birthDate").replaceAll("-","\\/")+"\"";
         } catch(JSONException je){
             throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting DOB from request",je);
         }
@@ -196,9 +194,11 @@ public class OpencrvsDataUtil {
 
     public String getPhoneFromTaskBody(JSONObject task){
         try{
-            return (String)returnOutputOfArrayIfInputEndsWithValue(task.getJSONArray("extension"),"url","contact-person-phone-number","valueString");
+            String str = "\"" + returnOutputOfArrayIfInputEndsWithValue(task.getJSONArray("extension"),"url","contact-person-phone-number","valueString") + "\"";
+            //LOGGER.info(LoggingConstants.SESSION,LoggingConstants.ID,"GETTING PHONE","Here phone: "+str+" here json: "+task);
+            return str;
         } catch(JSONException je){
-            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting email id from request ",je);
+            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting phone number from request ",je);
         }
     }
 
@@ -216,7 +216,7 @@ public class OpencrvsDataUtil {
     public Object returnOutputOfArrayIfInputEndsWithValue(JSONArray arr, String input, String inputValue, String output) throws JSONException{
         for(int i=0;i<arr.length();i++){
             JSONObject json = arr.getJSONObject(i);
-            if(inputValue.toLowerCase().endsWith(((String)getJSONNested(json,input)).toLowerCase())){
+            if(((String)getJSONNested(json,input)).toLowerCase().endsWith(inputValue.toLowerCase())){
                 return getJSONNested(json,output);
             }
         }
