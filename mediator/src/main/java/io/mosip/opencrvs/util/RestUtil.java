@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import io.mosip.kernel.core.exception.ExceptionUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -171,6 +172,8 @@ public class RestUtil{
     request = new HttpEntity<>("{\"hub\":{\"callback\":\""+ opencrvsBirthCallbackUrl +"\",\"mode\":\"subscribe\",\"secret\":\""+ opencrvsClientShaSecret +"\",\"topic\":\"BIRTH_REGISTERED\"}}",requestHeaders);
     try{responseForRequest = restTemplate.postForEntity(opencrvsWebhooksUrl, request, String.class);}
     catch(RestClientException e){
+      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID, "OPENCRVS_SUBSCRIBE", "Subscribe request being sent: "+request);
+      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID, "OPENCRVS_SUBSCRIBE", "Exception: " + ExceptionUtils.getStackTrace(e));
       throw new Exception(ErrorCode.SUBSCRIBE_FAILED_EXCEPTION);
     }
     if(!responseForRequest.getStatusCode().equals(HttpStatus.ACCEPTED)){
