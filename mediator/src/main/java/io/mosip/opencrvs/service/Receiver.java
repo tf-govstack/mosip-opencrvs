@@ -58,6 +58,12 @@ public class Receiver {
 	@Value("${opencrvs.birth.process.type}")
 	private String birthPacketProcessType;
 
+	@Value("${opencrvs.reproduce.on.error}")
+	private String reproducerOnError;
+
+	@Value("${opencrvs.reproduce.on.error.delay.ms}")
+	private String reproducerOnErrorDelayMs;
+
 	private Map<Double, String> idschemaCache = new HashMap<>();
 
 	@Autowired
@@ -99,7 +105,13 @@ public class Receiver {
 				} catch (BaseCheckedException e){
 					LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Error while processing transaction. Sending back to produce. " + ExceptionUtils.getStackTrace(e));
 					try{
-						producer.produce(record.value());
+						if("true".equalsIgnoreCase(reproducerOnError)){
+							// TODO: improve this so that it doesnt halt execution
+							try{
+								Thread.sleep(Long.valueOf(reproducerOnErrorDelayMs));
+							} catch(Exception ignored) {}
+							producer.produce(record.value());
+						}
 					}
 					catch(Exception ioe){
 						LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Unable to put back failed transaction to producer. " + ExceptionUtils.getStackTrace(ioe));
@@ -210,7 +222,7 @@ public class Receiver {
 			LOGGER.debug(LoggingConstants.SESSION,LoggingConstants.ID,request.getRid(),"Received This schemaJson from API: " + packetDto.getSchemaJson());
 			packetDto.setFields(idMap);
 			packetDto.setDocuments(docsMap);
-			packetDto.setMetaInfo(restUtil.getMetadata(birthPacketProcessType, request.getRid(),centerId,machineId, request.getOpencrvsId()));
+			packetDto.setMetaInfo(restUtil.getMetadata(restUtil.getDefaultSource(), request.getRid(),centerId,machineId, request.getOpencrvsId()));
 			packetDto.setAudits(restUtil.generateAudit(packetDto.getId(),auditAppName,auditAppId));
 			packetDto.setOfflineMode(false);
 			packetDto.setRefId(centerId + "_" + machineId);
