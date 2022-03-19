@@ -41,183 +41,179 @@ import io.mosip.opencrvs.constant.LoggingConstants;
 import io.mosip.opencrvs.error.ErrorCode;
 
 @Component
-public class RestUtil{
-  private static final Logger LOGGER = LogUtil.getLogger(RestUtil.class);
+public class RestUtil {
+    private static final Logger LOGGER = LogUtil.getLogger(RestUtil.class);
 
-  @Autowired
-  private Environment env;
+    @Autowired
+    private Environment env;
 
-  @Autowired
-  private RestTemplate selfTokenRestTemplate;
+    @Autowired
+    private RestTemplate selfTokenRestTemplate;
 
-  public List<Map<String, String>> generateAudit(String rid, String app_name, String  app_id) {
-    // Getting Host IP Address and Name
-    String hostIP = null;
-    String hostName = null;
-    try {
-      hostIP = InetAddress.getLocalHost().getHostAddress();
-      hostName = InetAddress.getLocalHost().getHostName();
-    } catch (UnknownHostException unknownHostException) {
-      // logger log
-      hostIP = "UNKNOWN-HOST";
-      hostName = "UNKNOWN-HOST";
+    public List<Map<String, String>> generateAudit(String rid, String app_name, String app_id) {
+        // Getting Host IP Address and Name
+        String hostIP = null;
+        String hostName = null;
+        try {
+            hostIP = InetAddress.getLocalHost().getHostAddress();
+            hostName = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException unknownHostException) {
+            // logger log
+            hostIP = "UNKNOWN-HOST";
+            hostName = "UNKNOWN-HOST";
+        }
+
+        List<Map<String, String>> mapList = new ArrayList<>();
+
+        Map<String, String> auditDtos = new HashMap<>();
+        auditDtos.put("uuid", UUID.randomUUID().toString());
+        auditDtos.put("createdAt", DateUtils.getUTCCurrentDateTimeString());
+        auditDtos.put("eventId", "OPENCRVS_CREATE_PACKET");
+        auditDtos.put("eventName", "opencrvs packet created");
+        auditDtos.put("eventType", "OPENCRVS");
+        auditDtos.put("actionTimeStamp", DateUtils.getUTCCurrentDateTimeString());
+        auditDtos.put("hostName", hostName);
+        auditDtos.put("hostIp", hostIP);
+        auditDtos.put("applicationId", app_id);
+        auditDtos.put("applicationName", app_name);
+        auditDtos.put("id", rid);
+        auditDtos.put("idType", "REGISTRATION_ID");
+
+        mapList.add(auditDtos);
+
+        return mapList;
     }
 
-    List<Map<String, String>> mapList = new ArrayList<>();
+    public String getIdSchema(Double version, Map<Double, String> idschemaCache) throws BaseCheckedException {
+        String apiNameMidSchemaUrl = env.getProperty(ApiName.MIDSCHEMAURL);
 
-    Map<String, String> auditDtos = new HashMap<>();
-    auditDtos.put("uuid", UUID.randomUUID().toString());
-    auditDtos.put("createdAt", DateUtils.getUTCCurrentDateTimeString());
-    auditDtos.put("eventId", "OPENCRVS_CREATE_PACKET");
-    auditDtos.put("eventName", "opencrvs packet created");
-    auditDtos.put("eventType", "OPENCRVS");
-    auditDtos.put("actionTimeStamp", DateUtils.getUTCCurrentDateTimeString());
-    auditDtos.put("hostName", hostName);
-    auditDtos.put("hostIp", hostIP);
-    auditDtos.put("applicationId", app_id);
-    auditDtos.put("applicationName", app_name);
-    auditDtos.put("id", rid);
-    auditDtos.put("idType", "REGISTRATION_ID");
+        if (idschemaCache.get(version) != null)
+            return idschemaCache.get(version);
 
-    mapList.add(auditDtos);
+        String response;
+        try {
+            response = (String) selfTokenRestTemplate.getForObject(apiNameMidSchemaUrl + "?schemaVersion=" + version.toString(), String.class);
+        } catch (RestClientException e) {
+            throw new BaseCheckedException(ErrorCode.API_RESOURCE_UNAVAILABLE_CODE, ErrorCode.API_RESOURCE_UNAVAILABLE_2_MESSAGE, e);
+        }
+        LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID, "RestUtil.getIdschema", "Obtained this reponse from server for getting IdSchema " + response);
+        if (response == null)
+            throw new BaseCheckedException(ErrorCode.API_RESOURCE_UNAVAILABLE_CODE, ErrorCode.API_RESOURCE_UNAVAILABLE_2_MESSAGE + version);
 
-    return mapList;
-  }
-  public String getIdSchema(Double version, Map<Double,String> idschemaCache) throws BaseCheckedException {
-    String apiNameMidSchemaUrl = env.getProperty(ApiName.MIDSCHEMAURL);
+        String responseString;
+        try {
+            JSONObject jsonObject = new JSONObject(response);
+            JSONObject respObj = jsonObject.getJSONObject("response");
+            responseString = respObj != null ? respObj.getString("schemaJson") : null;
+        } catch (JSONException je) {
+            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "RestUtil.getIdschema", ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
+            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
+        }
 
-    if (idschemaCache.get(version) != null)
-      return idschemaCache.get(version);
+        idschemaCache.putIfAbsent(version, responseString);
 
-    String response;
-    try{
-      response= (String) selfTokenRestTemplate.getForObject(apiNameMidSchemaUrl +"?schemaVersion="+version.toString(), String.class);
-    } catch(RestClientException e){
-      throw new BaseCheckedException(ErrorCode.API_RESOURCE_UNAVAILABLE_CODE,ErrorCode.API_RESOURCE_UNAVAILABLE_2_MESSAGE, e);
-    }
-    LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID,"RestUtil.getIdschema","Obtained this reponse from server for getting IdSchema "+response);
-    if (response == null)
-      throw new BaseCheckedException(ErrorCode.API_RESOURCE_UNAVAILABLE_CODE,ErrorCode.API_RESOURCE_UNAVAILABLE_2_MESSAGE + version);
-
-    String responseString;
-    try{
-      JSONObject jsonObject = new JSONObject(response);
-      JSONObject respObj = jsonObject.getJSONObject("response");
-      responseString = respObj != null ? respObj.getString("schemaJson") : null;
-    } catch(JSONException je) {
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"RestUtil.getIdschema", ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
-			throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
+        return responseString;
     }
 
-    idschemaCache.putIfAbsent(version,responseString);
+    public static String getMosipAuthToken(Environment env) throws BaseCheckedException {
+        String clientId = env.getProperty("mosip.opencrvs.client.id");
+        String clientSecret = env.getProperty("mosip.opencrvs.client.secret.key");
+        String iamUrl = env.getProperty("mosip.iam.token_endpoint");
 
-    return responseString;
-  }
-  public static String getMosipAuthToken(Environment env) throws BaseCheckedException{
-    String clientId = env.getProperty("mosip.opencrvs.client.id");
-    String clientSecret = env.getProperty("mosip.opencrvs.client.secret.key");
-    String iamUrl = env.getProperty("mosip.iam.token_endpoint");
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        formData.set("grant_type", "client_credentials");
+        formData.set("client_id", clientId);
+        formData.set("client_secret", clientSecret);
 
-    MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
-    formData.set("grant_type","client_credentials");
-    formData.set("client_id",clientId);
-    formData.set("client_secret",clientSecret);
-
-    String responseJson;
-    try{
-      responseJson = new RestTemplate().postForObject(iamUrl, formData, String.class);
-    } catch(RestClientException e){
-      throw new BaseCheckedException(ErrorCode.TOKEN_GENERATION_FAILED_CODE, ErrorCode.TOKEN_GENERATION_FAILED_MESSAGE,e);
-    }
-    if (responseJson==null || responseJson.isEmpty()) throw new BaseCheckedException(ErrorCode.TOKEN_GENERATION_FAILED_CODE, ErrorCode.TOKEN_GENERATION_FAILED_MESSAGE);
-    try{
-      return (String)(new JSONObject(responseJson)).get("access_token");
-    }
-    catch(JSONException je){
-      throw new BaseUncheckedException(ErrorCode.TOKEN_GENERATION_FAILED_CODE, ErrorCode.TOKEN_GENERATION_FAILED_MESSAGE);
-    }
-  }
-
-  @Async
-  public void asyncWebhooksSubscribe() {
-      String subscribeStartupDelayMs = env.getProperty("opencrvs.subscribe.startup.delay.ms");
-      try{
-          Thread.sleep(Long.valueOf(subscribeStartupDelayMs));
-      } catch (Exception ignored) {}
-      try{
-          String res = webhooksSubscribe();
-          // if(res!="Success"){LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Unable to subscribe to opencrvs, response: "+res);}
-          LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Subscription Successful");
-      }
-      catch(Exception e){
-          LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Unable to subscribe to opencrvs, exception: "+ ExceptionUtils.getStackTrace(e));
-      }
-  }
-
-  public String webhooksSubscribe() throws Exception{
-    //get authtoken
-    String opencrvsClientId = env.getProperty("opencrvs.client.id");
-    String opencrvsClientSecret = env.getProperty("opencrvs.client.secret.key");
-    String opencrvsClientShaSecret = env.getProperty("opencrvs.client.sha.secret");
-    String opencrvsAuthUrl = env.getProperty("opencrvs.auth.url");
-    String opencrvsWebhooksUrl = env.getProperty("opencrvs.webhooks.url");
-    String opencrvsBirthCallbackUrl = env.getProperty("opencrvs.birth.callback.url");
-
-    RestTemplate restTemplate = new RestTemplate();
-    HttpHeaders requestHeaders = new HttpHeaders();
-    requestHeaders.setContentType(MediaType.APPLICATION_JSON);
-    HttpEntity<String> request = new HttpEntity<>("{\"client_id\":\""+ opencrvsClientId +"\",\"client_secret\":\""+ opencrvsClientSecret +"\"}",requestHeaders);
-    ResponseEntity<String> responseForRequest;
-    try{
-      responseForRequest = restTemplate.postForEntity(opencrvsAuthUrl, request, String.class);
-    } catch(RestClientException e){
-      throw new Exception(ErrorCode.AUTH_TOKEN_EXCEPTION);
-    }
-    if(!responseForRequest.getStatusCode().equals(HttpStatus.OK)){
-      throw new Exception(ErrorCode.AUTH_TOKEN_EXCEPTION);
-    }
-    String token;
-    try{token = (String) new JSONObject(responseForRequest.getBody()).get("token");}
-    catch(JSONException e){
-      throw new Exception(ErrorCode.TOKEN_PARSING_EXCEPTION);
+        String responseJson;
+        try {
+            responseJson = new RestTemplate().postForObject(iamUrl, formData, String.class);
+        } catch (RestClientException e) {
+            throw new BaseCheckedException(ErrorCode.TOKEN_GENERATION_FAILED_CODE, ErrorCode.TOKEN_GENERATION_FAILED_MESSAGE, e);
+        }
+        if (responseJson == null || responseJson.isEmpty())
+            throw new BaseCheckedException(ErrorCode.TOKEN_GENERATION_FAILED_CODE, ErrorCode.TOKEN_GENERATION_FAILED_MESSAGE);
+        try {
+            return (String) (new JSONObject(responseJson)).get("access_token");
+        } catch (JSONException je) {
+            throw new BaseUncheckedException(ErrorCode.TOKEN_GENERATION_FAILED_CODE, ErrorCode.TOKEN_GENERATION_FAILED_MESSAGE);
+        }
     }
 
-    //subscribe
-    requestHeaders = new HttpHeaders();
-    requestHeaders.setContentType(MediaType.APPLICATION_JSON);
-    requestHeaders.set("Authorization","Bearer "+token);
-    request = new HttpEntity<>("{\"hub\":{\"callback\":\""+ opencrvsBirthCallbackUrl +"\",\"mode\":\"subscribe\",\"secret\":\""+ opencrvsClientShaSecret +"\",\"topic\":\"BIRTH_REGISTERED\"}}",requestHeaders);
-    try{responseForRequest = restTemplate.postForEntity(opencrvsWebhooksUrl, request, String.class);}
-    catch(RestClientException e){
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID, "OPENCRVS_SUBSCRIBE", "Subscribe request being sent: "+request);
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID, "OPENCRVS_SUBSCRIBE", "Exception: " + ExceptionUtils.getStackTrace(e));
-      throw new Exception(ErrorCode.SUBSCRIBE_FAILED_EXCEPTION);
+    @Async
+    public void asyncWebhooksSubscribe() {
+        String subscribeStartupDelayMs = env.getProperty("opencrvs.subscribe.startup.delay.ms");
+        try {
+            Thread.sleep(Long.valueOf(subscribeStartupDelayMs));
+        } catch (Exception ignored) {
+        }
+        try {
+            String res = webhooksSubscribe();
+            // if(res!="Success"){LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Unable to subscribe to opencrvs, response: "+res);}
+            LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Subscription Successful");
+        } catch (Exception e) {
+            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Unable to subscribe to opencrvs, exception: " + ExceptionUtils.getStackTrace(e));
+        }
     }
-    if(!responseForRequest.getStatusCode().equals(HttpStatus.ACCEPTED)){
-      throw new Exception(ErrorCode.SUBSCRIBE_FAILED_EXCEPTION);
+
+    public String webhooksSubscribe() throws Exception {
+        //get authtoken
+        String opencrvsClientId = env.getProperty("opencrvs.client.id");
+        String opencrvsClientSecret = env.getProperty("opencrvs.client.secret.key");
+        String opencrvsClientShaSecret = env.getProperty("opencrvs.client.sha.secret");
+        String opencrvsAuthUrl = env.getProperty("opencrvs.auth.url");
+        String opencrvsWebhooksUrl = env.getProperty("opencrvs.webhooks.url");
+        String opencrvsBirthCallbackUrl = env.getProperty("opencrvs.birth.callback.url");
+
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders requestHeaders = new HttpHeaders();
+        requestHeaders.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> request = new HttpEntity<>("{\"client_id\":\"" + opencrvsClientId + "\",\"client_secret\":\"" + opencrvsClientSecret + "\"}", requestHeaders);
+        ResponseEntity<String> responseForRequest;
+        try {
+            responseForRequest = restTemplate.postForEntity(opencrvsAuthUrl, request, String.class);
+        } catch (RestClientException e) {
+            throw new Exception(ErrorCode.AUTH_TOKEN_EXCEPTION);
+        }
+        if (!responseForRequest.getStatusCode().equals(HttpStatus.OK)) {
+            throw new Exception(ErrorCode.AUTH_TOKEN_EXCEPTION);
+        }
+        String token;
+        try {
+            token = (String) new JSONObject(responseForRequest.getBody()).get("token");
+        } catch (JSONException e) {
+            throw new Exception(ErrorCode.TOKEN_PARSING_EXCEPTION);
+        }
+
+        //subscribe
+        requestHeaders = new HttpHeaders();
+        requestHeaders.setContentType(MediaType.APPLICATION_JSON);
+        requestHeaders.set("Authorization", "Bearer " + token);
+        request = new HttpEntity<>("{\"hub\":{\"callback\":\"" + opencrvsBirthCallbackUrl + "\",\"mode\":\"subscribe\",\"secret\":\"" + opencrvsClientShaSecret + "\",\"topic\":\"BIRTH_REGISTERED\"}}", requestHeaders);
+        try {
+            responseForRequest = restTemplate.postForEntity(opencrvsWebhooksUrl, request, String.class);
+        } catch (RestClientException e) {
+            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "OPENCRVS_SUBSCRIBE", "Subscribe request being sent: " + request);
+            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "OPENCRVS_SUBSCRIBE", "Exception: " + ExceptionUtils.getStackTrace(e));
+            throw new Exception(ErrorCode.SUBSCRIBE_FAILED_EXCEPTION);
+        }
+        if (!responseForRequest.getStatusCode().equals(HttpStatus.ACCEPTED)) {
+            throw new Exception(ErrorCode.SUBSCRIBE_FAILED_EXCEPTION);
+        }
+        return responseForRequest.getBody();
     }
-    return responseForRequest.getBody();
-  }
 
-  public Map<String,String> getMetadata(String type, String uin, String centerId, String machineId, String opencrvsBirthId){
-    Map<String,String> map = new HashMap<>();
-    map.put("metadata","{ \"REGISTRATIONTYPE\" : \"" + type + "\", \"uin\" : \"" + uin + "\", \"centerId\":\""+centerId+"\", \"machineId\":\""+machineId+"\", \"opencrvsId\":\""+opencrvsBirthId+"\" }");
-    return map;
-  }
+    public Map<String, String> getMetadata(String type, String uin, String centerId, String machineId, String opencrvsBirthId) {
+        Map<String, String> map = new HashMap<>();
+        map.put("metadata", "{ \"REGISTRATIONTYPE\" : \"" + type + "\", \"uin\" : \"" + uin + "\", \"centerId\":\"" + centerId + "\", \"machineId\":\"" + machineId + "\", \"opencrvsId\":\"" + opencrvsBirthId + "\" }");
+        return map;
+    }
 
-	public String getDefaultSource(){
-		String provider = env.getProperty("provider.packetwriter.opencrvs");
-		List<String> strList = Arrays.asList(provider.split(","));
-		Optional<String> optional = strList.stream().filter(s -> s.contains("source")).findAny();
-		String source = optional.isPresent() ? optional.get().replace("source:", "") : null;
-		return source;
-	}
-
-	public String getDefaultProcess(){
-		String provider = env.getProperty("provider.packetwriter.opencrvs");
-		List<String> strList = Arrays.asList(provider.split(","));
-		Optional<String> optional = strList.stream().filter(s -> s.contains("process")).findAny();
-		String process = optional.isPresent() ? optional.get().replace("process:", "") : null;
-		return process;
-	}
+    public String getDefaultSource() {
+        String provider = env.getProperty("provider.packetwriter.opencrvs");
+        List<String> strList = Arrays.asList(provider.split(","));
+        Optional<String> optional = strList.stream().filter(s -> s.contains("source")).findAny();
+        String source = optional.isPresent() ? optional.get().replace("source:", "") : null;
+        return source;
+    }
 }

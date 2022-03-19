@@ -13,11 +13,8 @@ public class Constants{
   public static final String IDENTITY = "identity";
 
   public static final String PACKET_CREATION_STARTED = "Received. Packet Creation Started...\n";
-  public static final String PACKET_CREATION_TYPE = "NEW";
 
   public static final String DATETIME_PATTERN = "opencrvs.datetime.pattern";
-
-  public static final String CREATION_TYPE="OPENCRVS";
 
   // for packet sync
   public static final String SUPERVISOR_STATUS_APPROVED = "APPROVED";

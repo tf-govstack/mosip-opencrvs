@@ -55,6 +55,9 @@ public class Receiver {
 	@Value("${IDSchema.Version}")
 	private String idschemaVersion;
 
+	@Value("${opencrvs.birth.process.type}")
+	private String birthPacketProcessType;
+
 	private Map<Double, String> idschemaCache = new HashMap<>();
 
 	@Autowired
@@ -184,12 +187,12 @@ public class Receiver {
 
 			// set demographic documents
 			Map<String, Document> docsMap = new HashMap<>();
-//			if (request.getProofOfAddress() != null && !request.getProofOfAddress().isEmpty())
-//				setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, Constants.PROOF_OF_ADDRESS, docsMap);
-//			if (request.getProofOfDateOfBirth() != null && !request.getProofOfDateOfBirth().isEmpty())
-//				setDemographicDocuments(request.getProofOfDateOfBirth(), demoJsonObject, Constants.PROOF_OF_DOB, docsMap);
-//			if (request.getProofOfRelationship() != null && !request.getProofOfRelationship().isEmpty())
-//				setDemographicDocuments(request.getProofOfRelationship(), demoJsonObject, Constants.PROOF_OF_RELATIONSHIP, docsMap);
+			//if (request.getProofOfAddress() != null && !request.getProofOfAddress().isEmpty())
+			//	setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, Constants.PROOF_OF_ADDRESS, docsMap);
+			//if (request.getProofOfDateOfBirth() != null && !request.getProofOfDateOfBirth().isEmpty())
+			//	setDemographicDocuments(request.getProofOfDateOfBirth(), demoJsonObject, Constants.PROOF_OF_DOB, docsMap);
+			//if (request.getProofOfRelationship() != null && !request.getProofOfRelationship().isEmpty())
+			//	setDemographicDocuments(request.getProofOfRelationship(), demoJsonObject, Constants.PROOF_OF_RELATIONSHIP, docsMap);
 			if (request.getProofOfIdentity() != null && !request.getProofOfIdentity().isEmpty())
 				setDemographicDocuments(request.getProofOfIdentity(), demoJsonObject, Constants.PROOF_OF_IDENTITY, docsMap);
 
@@ -201,13 +204,13 @@ public class Receiver {
 			// packetDto.setId(generateRegistrationId(request.centerId, request.machineId));
 			packetDto.setId(request.getRid());
 			packetDto.setSource(restUtil.getDefaultSource());
-			packetDto.setProcess(restUtil.getDefaultProcess());
+			packetDto.setProcess(birthPacketProcessType);
 			packetDto.setSchemaVersion(idschemaVersion);
 			packetDto.setSchemaJson(restUtil.getIdSchema(Double.valueOf(idschemaVersion),idschemaCache));
 			LOGGER.debug(LoggingConstants.SESSION,LoggingConstants.ID,request.getRid(),"Received This schemaJson from API: " + packetDto.getSchemaJson());
 			packetDto.setFields(idMap);
 			packetDto.setDocuments(docsMap);
-			packetDto.setMetaInfo(restUtil.getMetadata(Constants.CREATION_TYPE, request.getRid(),centerId,machineId, request.getOpencrvsId()));
+			packetDto.setMetaInfo(restUtil.getMetadata(birthPacketProcessType, request.getRid(),centerId,machineId, request.getOpencrvsId()));
 			packetDto.setAudits(restUtil.generateAudit(packetDto.getId(),auditAppName,auditAppId));
 			packetDto.setOfflineMode(false);
 			packetDto.setRefId(centerId + "_" + machineId);
@@ -235,7 +238,7 @@ public class Receiver {
 
 			LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID, packetDto.getId(), "Receiver::createPacket()::packet created and sent for sync service");
 
-			String packetGeneratorRes = syncUploadEncryptionService.uploadUinPacket(packetDto.getId(), packetDto.getRefId(), creationTime, Constants.PACKET_CREATION_TYPE, packetZipBytes);
+			String packetGeneratorRes = syncUploadEncryptionService.uploadUinPacket(packetDto.getId(), packetDto.getRefId(), creationTime, birthPacketProcessType, packetZipBytes);
 
 			jdbcUtil.updateBirthStatus(txnId,"Uploaded");
 
