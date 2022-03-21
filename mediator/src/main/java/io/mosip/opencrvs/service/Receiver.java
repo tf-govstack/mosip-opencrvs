@@ -171,7 +171,7 @@ public class Receiver {
 				request.setRid(generateRegistrationId(centerId,machineId));
 				jdbcUtil.updateBirthRidAndStatus(txnId,request.getRid(),"RID Generated");
 			} else {
-				request.setRid(generateRegistrationId(centerId,machineId));
+				request.setRid(ridObtained);
 			}
 		}
 		catch(Exception e){
@@ -222,7 +222,7 @@ public class Receiver {
 			LOGGER.debug(LoggingConstants.SESSION,LoggingConstants.ID,request.getRid(),"Received This schemaJson from API: " + packetDto.getSchemaJson());
 			packetDto.setFields(idMap);
 			packetDto.setDocuments(docsMap);
-			packetDto.setMetaInfo(restUtil.getMetadata(restUtil.getDefaultSource(), request.getRid(),centerId,machineId, request.getOpencrvsId()));
+			packetDto.setMetaInfo(restUtil.getMetadata(birthPacketProcessType, request.getRid(),centerId,machineId, request.getOpencrvsId()));
 			packetDto.setAudits(restUtil.generateAudit(packetDto.getId(),auditAppName,auditAppId));
 			packetDto.setOfflineMode(false);
 			packetDto.setRefId(centerId + "_" + machineId);
