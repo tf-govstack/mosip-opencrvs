@@ -39,6 +39,8 @@ public class OpencrvsDataUtil {
     private String dummyZone;
     @Value("${opencrvs.data.dummy.postal.code}")
     private String dummyPostalCode;
+    @Value("${opencrvs.data.dummy.phone}")
+    private String dummyPhone;
 
     public ReceiveDto buildIdJson(String opencrvsRequestBody){
         JSONObject opencrvsJSONRequest;
@@ -89,17 +91,19 @@ public class OpencrvsDataUtil {
                 "\"city\":" + dummyCity + "," +
                 "\"zone\":" + dummyZone + "," +
                 "\"postalCode\":" + dummyPostalCode + "," +
-                "\"phone\":" + getPhoneFromTaskBody(task) + "," +
-                "\"email\":" + getEmailFromPatientBody(patient) +
-                //"," +
-                //"\"proofOfIdentity\":{" +
+                //"\"phone\":" + getPhoneFromTaskBody(task) + "," +
+                "\"phone\":" + dummyPhone + "," +
+                "\"email\":" + getEmailFromPatientBody(patient) + "," +
+                "\"proofOfIdentity\":{" +
+                "null}" +
                 //    "\"refNumber\":null," +
                 //    "\"format\":\"pdf\"," +
                 //    "\"type\":\"Reference Identity Card\"," +
                 //    "\"value\":\"Some_cert\"" +
                 //"}" +
-                //"," +
-                //"\"individualBiometrics\":{" +
+                "," +
+                "\"individualBiometrics\":{" +
+                "null}" +
                 //    "\"format\":\"cbeff\"," +
                 //    "\"version\":1," +
                 //    "\"value\":\"individualBiometrics_bio_CBEFF\"" +
