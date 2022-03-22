@@ -94,16 +94,18 @@ public class OpencrvsDataUtil {
                 //"\"phone\":" + getPhoneFromTaskBody(task) + "," +
                 "\"phone\":" + dummyPhone + "," +
                 "\"email\":" + getEmailFromPatientBody(patient) + "," +
-                "\"proofOfIdentity\":{" +
-                "null}" +
+                "\"proofOfIdentity\":" +
+                "null" +
+                //"{" +
                 //    "\"refNumber\":null," +
                 //    "\"format\":\"pdf\"," +
                 //    "\"type\":\"Reference Identity Card\"," +
                 //    "\"value\":\"Some_cert\"" +
                 //"}" +
                 "," +
-                "\"individualBiometrics\":{" +
-                "null}" +
+                "\"individualBiometrics\":" +
+                "null" +
+                //"{" +
                 //    "\"format\":\"cbeff\"," +
                 //    "\"version\":1," +
                 //    "\"value\":\"individualBiometrics_bio_CBEFF\"" +
