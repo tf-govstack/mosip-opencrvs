@@ -3,6 +3,8 @@ package io.mosip.opencrvs.util;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.net.URI;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -203,9 +205,85 @@ public class RestUtil {
         return responseForRequest.getBody();
     }
 
-    public Map<String, String> getMetadata(String type, String uin, String centerId, String machineId, String opencrvsBirthId) {
+    public Map<String, String> getMetadata(String type, String rid, String centerId, String machineId, String opencrvsBirthId) {
         Map<String, String> map = new HashMap<>();
-        map.put("metadata", "{ \"REGISTRATIONTYPE\" : \"" + type + "\", \"uin\" : \"" + uin + "\", \"centerId\":\"" + centerId + "\", \"machineId\":\"" + machineId + "\", \"opencrvsId\":\"" + opencrvsBirthId + "\" }");
+        String packetCreatedDateTime = rid.substring(rid.length() - 14);
+        String formattedDate = packetCreatedDateTime.substring(0, 8) + "T" + packetCreatedDateTime.substring(packetCreatedDateTime.length() - 6);
+        String creationTime = LocalDateTime.parse(formattedDate, DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss")) + ".000Z";
+        map.put("metaData",
+            "["+
+                "{" +
+                    "\"label\":\"registrationType\"," +
+                    "\"value\":\"" + type + "\"" +
+                "}" +
+                "," +
+                "{" +
+                    "\"label\":\"uin\"," +
+                    "\"value\":\"" + rid + "\"" +
+                "}" +
+                "," +
+                "{" +
+                    "\"label\":\"centerId\"," +
+                    "\"value\":\"" + centerId + "\"" +
+                "}" +
+                "," +
+                "{" +
+                    "\"label\":\"machineId\"," +
+                    "\"value\":\"" + machineId + "\"" +
+                "}" +
+                "," +
+                "{" +
+                    "\"label\":\"opencrvsId\"," +
+                    "\"value\":\"" + opencrvsBirthId + "\"" +
+                "}" +
+            "]");
+        map.put("registrationId", "\"" + rid + "\"");
+        map.put("operationsData",
+            "[" +
+                "{" +
+                    "\"label\":\"officerId\"," +
+                    "\"value\":null" +
+                "}," +
+                "{" +
+                    "\"label\":\"officerBiometricFileName\"," +
+                    "\"value\":null" +
+                "}," +
+                "{" +
+                    "\"label\":\"supervisorId\"," +
+                    "\"value\":null" +
+                "}," +
+                "{" +
+                    "\"label\":\"supervisorBiometricFileName\"," +
+                    "\"value\":null" +
+                "}," +
+                "{" +
+                    "\"label\":\"supervisorPassword\"," +
+                    "\"value\":null" +
+                "}," +
+                "{" +
+                    "\"label\":\"officerPassword\"," +
+                    "\"value\":null" +
+                "}," +
+                "{" +
+                    "\"label\":\"supervisorPIN\"," +
+                    "\"value\":null" +
+                "}," +
+                "{" +
+                    "\"label\":\"officerPIN\"," +
+                    "\"value\":null" +
+                "}," +
+                "{" +
+                    "\"label\":\"supervisorOTPAuthentication\"," +
+                    "\"value\":null" +
+                "}," +
+                "{" +
+                    "\"label\":\"officerOTPAuthentication\"," +
+                    "\"value\":null" +
+                "}" +
+            "]");
+        map.put("capturedRegisteredDevices","[]");
+        map.put("documents","[]");
+        map.put("creationDate","\"" + creationTime + "\"");
         return map;
     }
 
