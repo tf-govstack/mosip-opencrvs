@@ -61,6 +61,10 @@
   registration.processor.main-processes=NEW,UPDATE,LOST,RES_UPDATE,ACTIVATE,DEACTIVATE,OPENCRVS_NEW
   ```
 - Consider adding OPENCRVS_NEW proccess as part of `mosip_regprc/transaction_type` db table.
+- While creating `opencrvs-partner`, `opencrvs` credential_type has been used. The same will be used by the opencrvs side mediator while receiving credential. The following property has been changed to include this as well, in partner-management-default.properties. 
+  ```
+  pmp.allowed.credential.types=auth,qrcode,euin,reprint,vercred,opencrvs
+  ```
 - Added these props in opencrvs-default.properties, which tell the mediator to recreate packet in case of failure while
   creating the packet. WIP.
   ```
