@@ -35,7 +35,7 @@ kubectl -n $NS create secret generic opencrvs-client-creds \
   --from-literal=opencrvs_client_secret_key=$OPENCRVS_CLIENT_SECRET \
   --from-literal=opencrvs_client_sha_secret=$OPENCRVS_CLIENT_SHA_SECRET
 
-echo Install opencrvs-mediator...
+echo Installing mosip-side opencrvs-mediator...
 helm -n $NS install opencrvs-mediator mosip/opencrvs-mediator \
   --version $CHART_VERSION \
   --set mediator.opencrvs.authUrl=$OPENCRVS_AUTH_URL \
@@ -47,4 +47,7 @@ helm -n $NS install opencrvs-mediator mosip/opencrvs-mediator \
   --set istio.existingGateway="istio-system/public" \
   --wait
 
-echo Mediator Installed
+echo Installing regproc-opencrvs-stage...
+helm -n $NS install regproc-opencrvs-stage mosip/regproc-opencrvs \
+  --version $CHART_VERSION \
+  --wait
