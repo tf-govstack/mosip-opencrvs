@@ -234,10 +234,7 @@ public class OpencrvsStage extends MosipVerticleAPIManager {
 				CredentialRequestDto credentialRequestDto = getCredentialRequestDto(vid);
 				if(opencrvsId!=null && !opencrvsId.isEmpty()){
 					Map<String, Object> additionalData = new HashMap<>();
-					additionalData.put("additionalProp1",
-					"{" +
-						"\"opencrvsId\":\"" + opencrvsId + "\"" +
-					"}");
+					additionalData.put("opencrvsId",opencrvsId);
 					credentialRequestDto.setAdditionalData(additionalData);
 				}
 				requestWrapper.setId(env.getProperty("mosip.registration.processor.credential.request.service.id"));
