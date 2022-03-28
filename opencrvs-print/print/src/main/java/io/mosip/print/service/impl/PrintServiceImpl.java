@@ -203,7 +203,6 @@ public class PrintServiceImpl implements PrintService{
 
 	public boolean generateCard(EventModel eventModel) {
 		String credential = null;
-		String opencrvsId=null;
 		boolean isPrinted = false;
 		try {
 			if (eventModel.getEvent().getDataShareUri() == null || eventModel.getEvent().getDataShareUri().isEmpty()) {
@@ -214,10 +213,7 @@ public class PrintServiceImpl implements PrintService{
 				credential = restApiClient.getApi(dataShareUri, String.class);
 			}
 			String ecryptionPin = eventModel.getEvent().getData().get("protectionKey").toString();
-			JSONObject additionalProp1=new JSONObject((Map) eventModel.getEvent().getData().get("additionalProp1"));
-			if(!additionalProp1.isEmpty()) {
-				opencrvsId = additionalProp1.get("opencrvsId").toString();
-			}
+			String opencrvsId=eventModel.getEvent().getData().get("opencrvsId").toString();
 			String decodedCredential = cryptoCoreUtil.decrypt(credential);
 			if (verifyCredentialsFlag){
 				printLogger.info("Configured received credentials to be verified. Flag {}", verifyCredentialsFlag);
@@ -268,8 +264,8 @@ public class PrintServiceImpl implements PrintService{
 			credentialSubject = getCrdentialSubject(credential);
 			org.json.JSONObject credentialSubjectJson = new org.json.JSONObject(credentialSubject);
 			org.json.JSONObject decryptedJson = decryptAttribute(credentialSubjectJson, encryptionPin, credential);
-			individualBio = decryptedJson.getString("biometrics");
-			String individualBiometric = new String(individualBio);
+			/*individualBio = decryptedJson.getString("biometrics");
+			String individualBiometric = new String(individualBio);*/
 			uin = decryptedJson.getString("UIN");
 			if (isPasswordProtected) {
 				password = getPassword(uin);
@@ -281,17 +277,16 @@ public class PrintServiceImpl implements PrintService{
 						password);
 
 			} else {
-			boolean isPhotoSet = setApplicantPhoto(individualBiometric, attributes);
+			/*boolean isPhotoSet = setApplicantPhoto(individualBiometric, attributes);
 			if (!isPhotoSet) {
 				printLogger.debug(PlatformErrorMessages.PRT_PRT_APPLICANT_PHOTO_NOT_SET.name());
-			}
+			}*/
 			setTemplateAttributes(decryptedJson.toString(), attributes);
 			attributes.put(IdType.UIN.toString(), uin);
 			if(opencrvsId!=null) {
 				attributes.put(IdType.CRVSID.toString(), opencrvsId);
 				template=UIN_CARD_TEMPLATE_FOR_CRVS;
 			}
-			System.out.println(">>>>>>>>>>>>>>>template>>>>>>>>"+template);
 			byte[] textFileByte = createTextFile(decryptedJson.toString());
 			byteMap.put(UIN_TEXT_FILE, textFileByte);
 
@@ -460,7 +455,7 @@ public class PrintServiceImpl implements PrintService{
 			throws QrcodeGenerationException, IOException, io.mosip.print.exception.QrcodeGenerationException {
 		boolean isQRCodeSet = false;
 		JSONObject qrJsonObj = JsonUtil.objectMapperReadValue(qrString, JSONObject.class);
-		qrJsonObj.remove("biometrics");
+	//	qrJsonObj.remove("biometrics");
 		byte[] qrCodeBytes = qrCodeGenerator.generateQrCode(qrJsonObj.toString(), QrVersion.V30);
 		if (qrCodeBytes != null) {
 			String imageString = Base64.encodeBase64String(qrCodeBytes);
@@ -699,7 +694,6 @@ public class PrintServiceImpl implements PrintService{
 		creEvent.setPublisher("PRINT_SERVICE");
 		creEvent.setTopic(topic);
 		creEvent.setEvent(sEvent);
-		System.out.println(">>>>>>>>>>>event>>>>>>>>>>>>"+creEvent.toString());
 		webSubSubscriptionHelper.printStatusUpdateEvent(topic, creEvent);
 	}
 
