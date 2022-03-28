@@ -1,14 +1,10 @@
 package io.mosip.opencrvs.controller;
 
 import io.mosip.kernel.core.exception.ExceptionUtils;
+import org.assertj.core.util.Arrays;
 import org.springframework.core.env.Environment;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpEntity;
@@ -99,15 +95,46 @@ public class WebhooksRestController{
   // }
 
   @PostMapping(value="/birth",consumes=MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<String> postBirth(@RequestBody String body){
+  public ResponseEntity<String> postBirth(@CookieValue("Authorization") String authToken, @RequestBody String body){
     LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID, "RestController", "POST /birth; data: " + body);
+    try {
+      restUtil.validateToken(env.getProperty("mosip.iam.validate_endpoint"), authToken, null);
+    } catch(Exception e) {
+      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,e.getMessage());
+      return new ResponseEntity<>("{\"message\":\""+e.getMessage()+"\"}", HttpStatus.UNAUTHORIZED);
+    }
+
     try{
       producer.produce(body);
     } catch(Exception e){
       LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"RestController","POST / birth; Error while producing data " + ExceptionUtils.getStackTrace(e));
     }
 
-    return ResponseEntity.ok(Constants.PACKET_CREATION_STARTED);
+    return ResponseEntity.ok("{\"message\":\"" + Constants.PACKET_CREATION_STARTED + "\"}");
+  }
+
+  @PostMapping(value="/receiveCredentialBirth", consumes=MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<String> postReceiveUinOnBirth(@CookieValue(value="Authorization",required = false) String authToken, @RequestBody String body){
+    restUtil.proxyPassReceivedCredential(body);
+    return ResponseEntity.ok("{\"message\":\"Received\"}");
+  }
+  @GetMapping("/receiveCredentialBirth")
+  public ResponseEntity<String> getReceiveUinOnBirth(
+          @CookieValue(value="Authorization",required=false) String authToken,
+          @RequestParam(value="hub.topic") String topic,
+          @RequestParam(value="hub.mode") String mode,
+          @RequestParam(value="hub.reason",required = false) String reason,
+          @RequestParam(value="hub.challenge",required = false) String challenge
+  ){
+    if(reason!=null && !reason.isEmpty()){
+      System.out.println("Hello here is the confirmation {\"hub.topic\":\""+topic+"\", \"hub.mode\":\""+mode+"\",\"hub.reason\":\""+reason+"\"}");
+      return ResponseEntity.ok().build();
+    }
+    if(challenge!=null && !challenge.isEmpty()){
+      System.out.println("Hello here is the verification request {\"hub.topic\":\""+topic+"\", \"hub.mode\":\""+mode+"\",\"hub.challenge\":\""+challenge+"\"}");
+      return ResponseEntity.ok(challenge);
+    }
+    return ResponseEntity.ok().build();
   }
 
 }

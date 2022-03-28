@@ -5,17 +5,10 @@ import java.net.UnknownHostException;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import io.mosip.kernel.core.exception.ExceptionUtils;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -293,5 +286,33 @@ public class RestUtil {
         Optional<String> optional = strList.stream().filter(s -> s.contains("source")).findAny();
         String source = optional.isPresent() ? optional.get().replace("source:", "") : null;
         return source;
+    }
+
+    public void validateToken(String validateEndpoint, String authToken, String[] roleList) throws Exception{
+        HttpHeaders requestHeaders = new HttpHeaders();
+        requestHeaders.add("Authorization","Bearer " + authToken);
+        HttpEntity<String> request = new HttpEntity<>(requestHeaders);
+        try{
+            ResponseEntity<String> res = new RestTemplate().exchange(validateEndpoint, HttpMethod.GET,request,String.class);
+        } catch(Exception e){
+            throw new Exception("Unable to validate Token");
+        }
+
+        if(roleList==null) return;
+        // check if available roles are there.
+        try{
+            String tokenD = new String(Base64.getDecoder().decode(authToken.split("\\.")[1]));
+            String realmRoles = new JSONObject(tokenD).getJSONObject("realm_access").getJSONArray("roles").toString();
+            for(String role: roleList){
+                if(!realmRoles.contains("\""+role+"\"")) throw new Exception();
+            }
+        } catch(Exception e) {
+            System.out.println("Hello auth token error: " + ExceptionUtils.getStackTrace(e));
+            throw new Exception("Improper Authorization");
+        }
+    }
+
+    public void proxyPassReceivedCredential(String request){
+
     }
 }
