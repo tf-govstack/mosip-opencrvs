@@ -39,16 +39,14 @@ RUN apt-get -y update \
 # set working directory for the user
 WORKDIR /home/${container_user}
 
-ENV work_dir=/home/${container_user}
-
-COPY ./target/opencrvs-mediator-*-spring-boot.jar opencrvs-mediator.jar
-
 # change permissions of file inside working dir
 RUN chown -R ${container_user}:${container_user} /home/${container_user}
 
+EXPOSE 4545
+
+ADD --chown=${container_user}:${container_user} ./target/opencrvs-mediator-*-spring-boot.jar opencrvs-mediator.jar
+
 # select container user for all tasks
 USER ${container_user_uid}:${container_user_gid}
-
-EXPOSE 4545
 
 CMD java -Dspring.cloud.config.label="${spring_config_label_env}" -Dspring.profiles.active="${active_profile_env}" -Dspring.cloud.config.uri="${spring_config_url_env}" -jar opencrvs-mediator.jar

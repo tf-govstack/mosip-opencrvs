@@ -1,11 +1,15 @@
-# Opencrvs Mediator Deployment
+# Deployment
+
+## Overview
+This document describe deployment of `mosip-side-mediator` and `registration-processor-opencrvs-stage`.
 
 ## Prerequisites
 - The following command line utilities.
   - `psql`, `kubectl`,`helm`,`bash`, `curl`, `jq`
 
 ## Installation
-- Setting up db;
+- Onboard a new credential type partner, with name like `opencrvs-partner`, with appropriate certificates from opencrvs, and an auth_policy that has only UIN in sharableAttributes. Use [partner onboarding scripts](https://github.com/mosip/mosip-infra/tree/develop/deployment/v3/utils/onboard/partner/).
+- Set up `mosip_opencrvs` db:
   - Navigate to [db_scripts/mosip_opencrvs](../db_scripts/mosip_opencrvs).
   - Configure deploy.properties, with required secrets and hostname.
   - Then run:

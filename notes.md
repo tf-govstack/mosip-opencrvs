@@ -60,6 +60,11 @@
   ```
   registration.processor.main-processes=NEW,UPDATE,LOST,RES_UPDATE,ACTIVATE,DEACTIVATE,OPENCRVS_NEW
   ```
+- Consider adding OPENCRVS_NEW proccess as part of `mosip_regprc/transaction_type` db table.
+- While creating `opencrvs-partner`, `opencrvs` credential_type has been used. The same will be used by the opencrvs side mediator while receiving credential. The following property has been changed to include this as well, in partner-management-default.properties. 
+  ```
+  pmp.allowed.credential.types=auth,qrcode,euin,reprint,vercred,opencrvs
+  ```
 - Added these props in opencrvs-default.properties, which tell the mediator to recreate packet in case of failure while
   creating the packet. WIP.
   ```
@@ -72,6 +77,7 @@
   - From mosip side, we would want OpenCRVS webhook callback to happen on the private wireguard channel.
   - Plus the callback contains Authorizaiton.
   - Plus the data is encrypted.
+- Discuss how `zone`,`province`,`city`,`postal code` and other basic data about a country (masterdata) can be in sync in MOSIP and OpenCRVS. 
   
 Misc Dev Notes:
 - Create `mosip-opencrvs-client` in keycloak. Assign this client all the roles that are required to create and upload packets. And use that in properties. TODO
