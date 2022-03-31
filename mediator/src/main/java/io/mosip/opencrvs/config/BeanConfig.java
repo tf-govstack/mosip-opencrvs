@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.sql.DataSource;
 
+import io.mosip.opencrvs.util.RestTokenUtil;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 // import org.apache.http.impl.client.BasicCookieStore;
@@ -45,6 +46,9 @@ public class BeanConfig{
 	@Autowired
 	private Environment env;
 
+	@Autowired
+	private RestTokenUtil restTokenUtil;
+
 	@Bean
 	public Executor taskExecutor() {
 		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
@@ -70,14 +74,14 @@ public class BeanConfig{
 		restTemplate.setInterceptors(Collections.singletonList(new ClientHttpRequestInterceptor(){
 			@Override
 			public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution){
+				String mosipAuthToken = restTokenUtil.getMosipAuthToken("selfCacheRestTemplate");
+				if(mosipAuthToken==null || mosipAuthToken.isEmpty()) throw new RestClientException("Unable to get mosip auth token");
+
 				try{
-					String mosipAuthToken = RestUtil.getMosipAuthToken(env);
 					request.getHeaders().set("Cookie","Authorization="+mosipAuthToken);
 					return execution.execute(request, body);
-				} catch(BaseCheckedException e){
-					throw new RestClientException("Unable to get mosip auth token",e);
 				} catch(IOException e){
-					throw new RestClientException("Some Error while making call",e);
+					throw new RestClientException("Some Error while making selfCacheRestTemplate call",e);
 				}
 			}
 		}));

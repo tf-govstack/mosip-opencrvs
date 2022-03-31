@@ -95,6 +95,7 @@ public class Receiver {
 				try {
 					LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Received transaction");
 					String preProcessResult = preProcess(record);
+					LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+record.key(),"PreProcessResult : " + preProcessResult);
 					if(preProcessResult!=null && !preProcessResult.isEmpty()){
 						createAndUploadPacket(preProcessResult);
 					}
@@ -124,17 +125,15 @@ public class Receiver {
 	public String preProcess(ConsumerRecord<String,String> record) throws BaseCheckedException{
 		try{
 			JSONObject request = new JSONObject(record.value());
-			String encryptedDataEncodedStr = request.getString("data");
-			String signatureEncodedStr = request.getString("signature");
-			byte[] encryptedDataBytes = CryptoUtil.decodePlainBase64(encryptedDataEncodedStr);
-			byte[] signatureBytes = CryptoUtil.decodePlainBase64(signatureEncodedStr);
-			if(!opencrvsCryptoUtil.verify(encryptedDataEncodedStr.getBytes(),signatureBytes)){
+			byte[] encryptedData = CryptoUtil.decodePlainBase64(request.getString("data"));
+			byte[] signature = CryptoUtil.decodePlainBase64(request.getString("signature"));
+
+			if(!opencrvsCryptoUtil.verify(encryptedData,signature)){
 				LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+record.key(),"Invalid Signature. This packet wont be processed.");
 				return null;
 			}
 
-			byte[] decryptedBytes = opencrvsCryptoUtil.decrypt(encryptedDataBytes);
-			return new String(decryptedBytes);
+			return new String(opencrvsCryptoUtil.decrypt(encryptedData));
 		} catch(Exception e) {
 			LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+record.key(),"Unable to verify sign or decrypt "+ExceptionUtils.getStackTrace(e));
 			if(e instanceof BaseCheckedException) throw (BaseCheckedException) e;
