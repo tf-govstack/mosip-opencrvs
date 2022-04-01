@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -44,6 +45,8 @@ public class RestUtil {
 
     @Value("${mosip.opencrvs.partner.client.id}")
     private String partnerClientId;
+    @Value("${mosip.opencrvs.partner.client.sha.secret}")
+    private String partnerClientShaSecret;
     @Value("${opencrvs.receive.credential.url}")
     private String opencrvsReceiveCredUrl;
     @Value("${websub.hub.url}")
@@ -125,6 +128,18 @@ public class RestUtil {
         return responseString;
     }
 
+    @Scheduled(fixedDelayString = "${mosip.opencrvs.websub.resubscribe.delay.ms}",
+            initialDelayString = "${mosip.opencrvs.websub.resubscribe.init.delay.ms}")
+    public void initSubscriptions() {
+        if(!"true".equalsIgnoreCase(env.getProperty("mosip.opencrvs.websub.resubscribe"))) return;
+        LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "websubSubscribe", "Initializing Websub Subscriptions");
+        try {
+            websubSubscribe();
+        } catch (Exception e) {
+            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "websubSubscribe", "Error in init websub Subscriptions: "+ExceptionUtils.getStackTrace(e));
+        }
+    }
+
     public void websubSubscribe() throws Exception {
         //get authtoken
         String token = restTokenUtil.getPartnerAuthToken("subscribe to websub");
@@ -138,8 +153,10 @@ public class RestUtil {
             requestHeaders.set("Cookie", "Authorization=" + token);
             MultiValueMap<String, String> request = new LinkedMultiValueMap<>();
             request.set("hub.callback",mosipReceiveCredCallback);
+            request.set("hub.secret",partnerClientShaSecret);
             request.set("hub.mode","subscribe");
             request.set("hub.topic",partnerClientId +"/CREDENTIAL_ISSUED");
+            request.set("hub.lease_seconds",env.getProperty("mosip.opencrvs.websub.resubscribe.lease.seconds"));
             HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(request, requestHeaders);
             String res = new RestTemplate().postForObject(mosipWebSubHubUrl, requestEntity, String.class);
         } catch (Exception e) {

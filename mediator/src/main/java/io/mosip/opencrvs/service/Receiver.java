@@ -94,7 +94,7 @@ public class Receiver {
 			for (ConsumerRecord<String, String> record : records) {
 				try {
 					LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Received transaction");
-					String preProcessResult = preProcess(record);
+					String preProcessResult = preProcess(record.key(),record.value());
 					LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+record.key(),"PreProcessResult : " + preProcessResult);
 					if(preProcessResult!=null && !preProcessResult.isEmpty()){
 						createAndUploadPacket(preProcessResult);
@@ -122,20 +122,20 @@ public class Receiver {
 		}
 	}
 
-	public String preProcess(ConsumerRecord<String,String> record) throws BaseCheckedException{
+	public String preProcess(String key,String value) throws BaseCheckedException{
 		try{
-			JSONObject request = new JSONObject(record.value());
+			JSONObject request = new JSONObject(value);
 			byte[] encryptedData = CryptoUtil.decodePlainBase64(request.getString("data"));
 			byte[] signature = CryptoUtil.decodePlainBase64(request.getString("signature"));
 
 			if(!opencrvsCryptoUtil.verify(encryptedData,signature)){
-				LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+record.key(),"Invalid Signature. This packet wont be processed.");
+				LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"Invalid Signature. This packet wont be processed.");
 				return null;
 			}
 
 			return new String(opencrvsCryptoUtil.decrypt(encryptedData));
 		} catch(Exception e) {
-			LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+record.key(),"Unable to verify sign or decrypt "+ExceptionUtils.getStackTrace(e));
+			LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"Unable to verify sign or decrypt "+ExceptionUtils.getStackTrace(e));
 			if(e instanceof BaseCheckedException) throw (BaseCheckedException) e;
 			else {
 				throw new BaseCheckedException(ErrorCode.PRE_PROCESS_DATA_EXCEPTION_CODE,ErrorCode.PRE_PROCESS_DATA_EXCEPTION_MESSAGE,e);
