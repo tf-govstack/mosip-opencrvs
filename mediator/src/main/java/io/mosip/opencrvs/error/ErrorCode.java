@@ -40,4 +40,19 @@ public class ErrorCode{
 
   public static final String KAFKA_MSG_SEND_EXCEPTION_CODE="OPN-CRVS-014";
   public static final String KAFKA_MSG_SEND_EXCEPTION_MESSAGE="Error putting message in kafka topic";
+
+  public static final String CRYPTO_READ_PRIVATE_KEY_EXCEPTION_CODE="OPN-CRVS-020";
+  public static final String CRYPTO_READ_PRIVATE_KEY_EXCEPTION_MESSAGE="Error reading private key ";
+  public static final String CRYPTO_INIT_PRIVATE_KEY_EXCEPTION_CODE="OPN-CRVS-021";
+  public static final String CRYPTO_INIT_PRIVATE_KEY_EXCEPTION_MESSAGE="Unable to initialize private key ";
+  public static final String CRYPTO_DECRYPT_EXCEPTION_CODE="OPN-CRVS-022";
+  public static final String CRYPTO_DECRYPT_EXCEPTION_MESSAGE="Unable to decrypt encrypted data ";
+  public static final String CRYPTO_READ_PUBLIC_KEY_EXCEPTION_CODE="OPN-CRVS-023";
+  public static final String CRYPTO_READ_PUBLIC_KEY_EXCEPTION_MESSAGE="Error reading public key ";
+  public static final String CRYPTO_INIT_PUBLIC_KEY_EXCEPTION_CODE="OPN-CRVS-024";
+  public static final String CRYPTO_INIT_PUBLIC_KEY_EXCEPTION_MESSAGE="Unable to initialize public key ";
+  public static final String CRYPTO_SIGN_VERIFY_EXCEPTION_CODE="OPN-CRVS-025";
+  public static final String CRYPTO_SIGN_VERIFY_EXCEPTION_MESSAGE="Unable to verify signed data ";
+  public static final String PRE_PROCESS_DATA_EXCEPTION_CODE="OPN-CRVS-026";
+  public static final String PRE_PROCESS_DATA_EXCEPTION_MESSAGE="Error while preProcessing data";
 }

@@ -2,15 +2,11 @@ package io.mosip.opencrvs.service;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Iterator;
+import java.util.*;
 
 import io.mosip.kernel.core.exception.ExceptionUtils;
 import io.mosip.opencrvs.util.*;
@@ -58,12 +54,6 @@ public class Receiver {
 	@Value("${opencrvs.birth.process.type}")
 	private String birthPacketProcessType;
 
-	@Value("${opencrvs.reproduce.on.error}")
-	private String reproducerOnError;
-
-	@Value("${opencrvs.reproduce.on.error.delay.ms}")
-	private String reproducerOnErrorDelayMs;
-
 	private Map<Double, String> idschemaCache = new HashMap<>();
 
 	@Autowired
@@ -88,6 +78,9 @@ public class Receiver {
 	private JdbcUtil jdbcUtil;
 
 	@Autowired
+	private OpencrvsCryptoUtil opencrvsCryptoUtil;
+
+	@Autowired
 	private OpencrvsDataUtil opencrvsDataUtil;
 
 	@Autowired
@@ -97,25 +90,18 @@ public class Receiver {
 	public void receive(){
 		String pollIntervalMs = env.getProperty("mosip.opencrvs.kafka.consumer.poll.interval.ms");
 		while (true) {
-			ConsumerRecords<String, String> records = kafkaUtil.consumerPoll(Duration.ofMillis(Long.valueOf(pollIntervalMs)));
+			ConsumerRecords<String, String> records = kafkaUtil.consumerPoll(Duration.ofMillis(Long.parseLong(pollIntervalMs)));
 			for (ConsumerRecord<String, String> record : records) {
 				try {
 					LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Received transaction");
-					createAndUploadPacket(record.value());
+					String preProcessResult = preProcess(record.key(),record.value());
+					LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+record.key(),"PreProcessResult : " + preProcessResult);
+					if(preProcessResult!=null && !preProcessResult.isEmpty()){
+						createAndUploadPacket(preProcessResult);
+					}
 				} catch (BaseCheckedException e){
-					LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Error while processing transaction. Sending back to produce. " + ExceptionUtils.getStackTrace(e));
-					try{
-						if("true".equalsIgnoreCase(reproducerOnError)){
-							// TODO: improve this so that it doesnt halt execution
-							try{
-								Thread.sleep(Long.valueOf(reproducerOnErrorDelayMs));
-							} catch(Exception ignored) {}
-							producer.produce(record.value());
-						}
-					}
-					catch(Exception ioe){
-						LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Unable to put back failed transaction to producer. " + ExceptionUtils.getStackTrace(ioe));
-					}
+					LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Error while processing transaction. Sending to reproduce" + ExceptionUtils.getStackTrace(e));
+					producer.reproduce(record.value());
 				} catch (Exception e){
 					LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Error while processing transaction. " + ExceptionUtils.getStackTrace(e));
 				}
@@ -133,6 +119,27 @@ public class Receiver {
 		catch(JSONException je){
 			LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"generate RID", ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
 			throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
+		}
+	}
+
+	public String preProcess(String key,String value) throws BaseCheckedException{
+		try{
+			JSONObject request = new JSONObject(value);
+			byte[] encryptedData = CryptoUtil.decodePlainBase64(request.getString("data"));
+			byte[] signature = CryptoUtil.decodePlainBase64(request.getString("signature"));
+
+			if(!opencrvsCryptoUtil.verify(encryptedData,signature)){
+				LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"Invalid Signature. This packet wont be processed.");
+				return null;
+			}
+
+			return new String(opencrvsCryptoUtil.decrypt(encryptedData));
+		} catch(Exception e) {
+			LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"Unable to verify sign or decrypt "+ExceptionUtils.getStackTrace(e));
+			if(e instanceof BaseCheckedException) throw (BaseCheckedException) e;
+			else {
+				throw new BaseCheckedException(ErrorCode.PRE_PROCESS_DATA_EXCEPTION_CODE,ErrorCode.PRE_PROCESS_DATA_EXCEPTION_MESSAGE,e);
+			}
 		}
 	}
 

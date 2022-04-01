@@ -3,26 +3,23 @@ package io.mosip.opencrvs.util;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.net.URI;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import io.mosip.kernel.core.exception.ExceptionUtils;
+import org.joda.time.DateTime;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -46,8 +43,22 @@ import io.mosip.opencrvs.error.ErrorCode;
 public class RestUtil {
     private static final Logger LOGGER = LogUtil.getLogger(RestUtil.class);
 
+    @Value("${mosip.opencrvs.partner.client.id}")
+    private String partnerClientId;
+    @Value("${mosip.opencrvs.partner.client.sha.secret}")
+    private String partnerClientShaSecret;
+    @Value("${opencrvs.receive.credential.url}")
+    private String opencrvsReceiveCredUrl;
+    @Value("${websub.hub.url}")
+    private String mosipWebSubHubUrl;
+    @Value("${mosip.receive.credential.url}")
+    private String mosipReceiveCredCallback;
+
     @Autowired
     private Environment env;
+
+    @Autowired
+    private RestTokenUtil restTokenUtil;
 
     @Autowired
     private RestTemplate selfTokenRestTemplate;
@@ -94,7 +105,7 @@ public class RestUtil {
 
         String response;
         try {
-            response = (String) selfTokenRestTemplate.getForObject(apiNameMidSchemaUrl + "?schemaVersion=" + version.toString(), String.class);
+            response = selfTokenRestTemplate.getForObject(apiNameMidSchemaUrl + "?schemaVersion=" + version.toString(), String.class);
         } catch (RestClientException e) {
             throw new BaseCheckedException(ErrorCode.API_RESOURCE_UNAVAILABLE_CODE, ErrorCode.API_RESOURCE_UNAVAILABLE_2_MESSAGE, e);
         }
@@ -117,92 +128,41 @@ public class RestUtil {
         return responseString;
     }
 
-    public static String getMosipAuthToken(Environment env) throws BaseCheckedException {
-        String clientId = env.getProperty("mosip.opencrvs.client.id");
-        String clientSecret = env.getProperty("mosip.opencrvs.client.secret.key");
-        String iamUrl = env.getProperty("mosip.iam.token_endpoint");
-
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
-        formData.set("grant_type", "client_credentials");
-        formData.set("client_id", clientId);
-        formData.set("client_secret", clientSecret);
-
-        String responseJson;
+    @Scheduled(fixedDelayString = "${mosip.opencrvs.websub.resubscribe.delay.ms}",
+            initialDelayString = "${mosip.opencrvs.websub.resubscribe.init.delay.ms}")
+    public void initSubscriptions() {
+        if(!"true".equalsIgnoreCase(env.getProperty("mosip.opencrvs.websub.resubscribe"))) return;
+        LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "websubSubscribe", "Initializing Websub Subscriptions");
         try {
-            responseJson = new RestTemplate().postForObject(iamUrl, formData, String.class);
-        } catch (RestClientException e) {
-            throw new BaseCheckedException(ErrorCode.TOKEN_GENERATION_FAILED_CODE, ErrorCode.TOKEN_GENERATION_FAILED_MESSAGE, e);
-        }
-        if (responseJson == null || responseJson.isEmpty())
-            throw new BaseCheckedException(ErrorCode.TOKEN_GENERATION_FAILED_CODE, ErrorCode.TOKEN_GENERATION_FAILED_MESSAGE);
-        try {
-            return (String) (new JSONObject(responseJson)).get("access_token");
-        } catch (JSONException je) {
-            throw new BaseUncheckedException(ErrorCode.TOKEN_GENERATION_FAILED_CODE, ErrorCode.TOKEN_GENERATION_FAILED_MESSAGE);
-        }
-    }
-
-    @Async
-    public void asyncWebhooksSubscribe() {
-        String subscribeStartupDelayMs = env.getProperty("opencrvs.subscribe.startup.delay.ms");
-        try {
-            Thread.sleep(Long.valueOf(subscribeStartupDelayMs));
-        } catch (Exception ignored) {
-        }
-        try {
-            String res = webhooksSubscribe();
-            // if(res!="Success"){LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Unable to subscribe to opencrvs, response: "+res);}
-            LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Subscription Successful");
+            websubSubscribe();
         } catch (Exception e) {
-            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Unable to subscribe to opencrvs, exception: " + ExceptionUtils.getStackTrace(e));
+            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "websubSubscribe", "Error in init websub Subscriptions: "+ExceptionUtils.getStackTrace(e));
         }
     }
 
-    public String webhooksSubscribe() throws Exception {
+    public void websubSubscribe() throws Exception {
         //get authtoken
-        String opencrvsClientId = env.getProperty("opencrvs.client.id");
-        String opencrvsClientSecret = env.getProperty("opencrvs.client.secret.key");
-        String opencrvsClientShaSecret = env.getProperty("opencrvs.client.sha.secret");
-        String opencrvsAuthUrl = env.getProperty("opencrvs.auth.url");
-        String opencrvsWebhooksUrl = env.getProperty("opencrvs.webhooks.url");
-        String opencrvsBirthCallbackUrl = env.getProperty("opencrvs.birth.callback.url");
+        String token = restTokenUtil.getPartnerAuthToken("subscribe to websub");
+        if(token==null || token.isEmpty()) throw new Exception(ErrorCode.AUTH_TOKEN_EXCEPTION);
 
-        RestTemplate restTemplate = new RestTemplate();
-        HttpHeaders requestHeaders = new HttpHeaders();
-        requestHeaders.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> request = new HttpEntity<>("{\"client_id\":\"" + opencrvsClientId + "\",\"client_secret\":\"" + opencrvsClientSecret + "\"}", requestHeaders);
-        ResponseEntity<String> responseForRequest;
-        try {
-            responseForRequest = restTemplate.postForEntity(opencrvsAuthUrl, request, String.class);
-        } catch (RestClientException e) {
-            throw new Exception(ErrorCode.AUTH_TOKEN_EXCEPTION);
-        }
-        if (!responseForRequest.getStatusCode().equals(HttpStatus.OK)) {
-            throw new Exception(ErrorCode.AUTH_TOKEN_EXCEPTION);
-        }
-        String token;
-        try {
-            token = (String) new JSONObject(responseForRequest.getBody()).get("token");
-        } catch (JSONException e) {
-            throw new Exception(ErrorCode.TOKEN_PARSING_EXCEPTION);
-        }
+        LOGGER.debug(LoggingConstants.SESSION,LoggingConstants.ID,"websubSubscribe","Here partner Auth token: "+token);
 
         //subscribe
-        requestHeaders = new HttpHeaders();
-        requestHeaders.setContentType(MediaType.APPLICATION_JSON);
-        requestHeaders.set("Authorization", "Bearer " + token);
-        request = new HttpEntity<>("{\"hub\":{\"callback\":\"" + opencrvsBirthCallbackUrl + "\",\"mode\":\"subscribe\",\"secret\":\"" + opencrvsClientShaSecret + "\",\"topic\":\"BIRTH_REGISTERED\"}}", requestHeaders);
         try {
-            responseForRequest = restTemplate.postForEntity(opencrvsWebhooksUrl, request, String.class);
-        } catch (RestClientException e) {
-            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "OPENCRVS_SUBSCRIBE", "Subscribe request being sent: " + request);
-            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "OPENCRVS_SUBSCRIBE", "Exception: " + ExceptionUtils.getStackTrace(e));
+            HttpHeaders requestHeaders = new HttpHeaders();
+            requestHeaders.set("Cookie", "Authorization=" + token);
+            MultiValueMap<String, String> request = new LinkedMultiValueMap<>();
+            request.set("hub.callback",mosipReceiveCredCallback);
+            request.set("hub.secret",partnerClientShaSecret);
+            request.set("hub.mode","subscribe");
+            request.set("hub.topic",partnerClientId +"/CREDENTIAL_ISSUED");
+            request.set("hub.lease_seconds",env.getProperty("mosip.opencrvs.websub.resubscribe.lease.seconds"));
+            HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(request, requestHeaders);
+            String res = new RestTemplate().postForObject(mosipWebSubHubUrl, requestEntity, String.class);
+        } catch (Exception e) {
+            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "subscribe to websub", "Failed to subscribe. Exception: " + ExceptionUtils.getStackTrace(e));
             throw new Exception(ErrorCode.SUBSCRIBE_FAILED_EXCEPTION);
         }
-        if (!responseForRequest.getStatusCode().equals(HttpStatus.ACCEPTED)) {
-            throw new Exception(ErrorCode.SUBSCRIBE_FAILED_EXCEPTION);
-        }
-        return responseForRequest.getBody();
     }
 
     public Map<String, String> getMetadata(String type, String rid, String centerId, String machineId, String opencrvsBirthId) {
@@ -293,5 +253,60 @@ public class RestUtil {
         Optional<String> optional = strList.stream().filter(s -> s.contains("source")).findAny();
         String source = optional.isPresent() ? optional.get().replace("source:", "") : null;
         return source;
+    }
+
+    @Async
+    public void proxyPassReceivedCredential(String credentialData){
+        //get authtoken
+        String token = restTokenUtil.getOpencrvsAuthToken("subscribe to websub");
+        if(token==null || token.isEmpty()) return;
+
+        try{
+            HttpHeaders requestHeaders = new HttpHeaders();
+            requestHeaders.setContentType(MediaType.APPLICATION_JSON);
+            requestHeaders.add("Authorization","Bearer "+token);
+            HttpEntity<String> request = new HttpEntity<>(credentialData, requestHeaders);
+            String res = new RestTemplate().postForObject(opencrvsReceiveCredUrl,request,String.class);
+            LOGGER.info(LoggingConstants.SESSION,LoggingConstants.ID,"send credentials","Sent Credentials. response - "+res);
+        } catch (Exception e) {
+            LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"send credentials","Error sending Credentials: "+ExceptionUtils.getStackTrace(e));
+        }
+
+        publishStatusWebsub(credentialData);
+    }
+
+    public void publishStatusWebsub(String cred){
+        //get authtoken
+        String credStatusUpdateTopic = "CREDENTIAL_STATUS_UPDATE";
+        String token = restTokenUtil.getPartnerAuthToken("Publish status to websub");
+        if(token==null || token.isEmpty()) return;
+
+        try{
+            String requestId = new JSONObject(cred).getJSONObject("event").getString("transactionId");
+            String topic = partnerClientId + "/CREDENTIAL_ISSUED";
+            String req =
+                "{" +
+                    "\"publishedOn\":\"" + new DateTime() + "\"" + "," +
+                    "\"publisher\":\"OPENCRVS_MEDIATOR\"" + "," +
+                    "\"topic\":\"" + credStatusUpdateTopic + "\"" + "," +
+                    "\"event\":" +
+                        "{" +
+                            "\"id\":\"" + UUID.randomUUID() + "\"" + "," +
+                            "\"requestId\":\"" + requestId + "\"" + "," +
+                            "\"status\":\"served\"" + "," +
+                            "\"timestamp\":\"" + Timestamp.valueOf(DateUtils.getUTCCurrentDateTime()) + "\"" + "," +
+                            "\"url\":null" +
+                        "}" +
+                "}";
+            String url = UriComponentsBuilder.fromHttpUrl(mosipWebSubHubUrl).queryParam("hub.mode", "publish").queryParam("hub.topic", credStatusUpdateTopic).toUriString();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
+            headers.add("Cookie","Authorization="+token);
+            HttpEntity<String> request = new HttpEntity<>(req,headers);
+            String res = new RestTemplate().postForObject(url,request,String.class);
+            LOGGER.info(LoggingConstants.SESSION,LoggingConstants.ID,"publish status to websub","Published status. Response: "+res);
+        } catch (Exception e) {
+            LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"publish status to websub","Error publishing status "+ExceptionUtils.getStackTrace(e));
+        }
     }
 }
