@@ -60,7 +60,7 @@
   ```
   registration.processor.main-processes=NEW,UPDATE,LOST,RES_UPDATE,ACTIVATE,DEACTIVATE,OPENCRVS_NEW
   ```
-- Consider adding OPENCRVS_NEW proccess as part of `mosip_regprc/transaction_type` db table.
+- Consider adding OPENCRVS_NEW proccess as part of `mosip_regprc/transaction_type` db_scripts. (For now this is created as part of installation)
 - While creating `opencrvs-partner`, `opencrvs` credential_type has been used. The same will be used by the opencrvs side mediator while receiving credential. The following property has been changed to include this as well, in partner-management-default.properties. 
   ```
   pmp.allowed.credential.types=auth,qrcode,euin,reprint,vercred,opencrvs
@@ -75,17 +75,17 @@
 - Discuss a longterm model for Registrations that would happen through partners in MOSIP. And refit this implementation to that model.
 - Discuss an infra model with OpenCRVS, on how the OpenCRVS webhook and MOSIP websub would communicate with each other over a secured private channel.
   - From mosip side, we would want OpenCRVS webhook callback to happen on the private wireguard channel.
-  - Plus the callback contains Authorizaiton.
+  - Plus the callback contains Authorization.
   - Plus the data is encrypted.
-- Discuss how `zone`,`province`,`city`,`postal code` and other basic data about a country (masterdata) can be in sync in MOSIP and OpenCRVS. 
-  
+- Discuss how `zone`,`province`,`city`,`postal code` and other basic data about a country (masterdata) can be in sync between MOSIP and OpenCRVS.
+
 Misc Dev Notes:
 - Create `mosip-opencrvs-client` in keycloak. Assign this client all the roles that are required to create and upload packets. And use that in properties. TODO
-- Create a duplicate print stage called opencrvs-print stage, which will add additional opencrvs data in the credential request. TODO 
+- Create a duplicate print stage called opencrvs-print stage, which will add additional opencrvs data in the credential request. TODO
 - Onboard an `opencrvs-partner`, create a similar client and user in keycloak. DONE
-  - Use this above partner and subscribe to websub, for uin generated event. TODO 
+  - Use this above partner and subscribe to websub, for uin generated event. DONE
 - Update postgres-init to include `mosip-opencrvs` db. CLOSED: WONT DO.
 - Use `kernel-auth-adapter`, and remove the dummy adapter in code. TODO.
 - Create docker, helm chart in mosip-helm, and add ci to github. DONE.
 - Create testcases. TODO.
-- Analyze with sonar cloud. Publish snapshots to ossrh. TODO.
+- Analyze with sonar cloud. Publish to mvn repo & snapshots to ossrh. TODO.
