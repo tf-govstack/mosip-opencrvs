@@ -27,7 +27,7 @@
 		<packet.info.storage.service.version>1.2.0</packet.info.storage.service.version>
 		<powermock.module.junit4.version>2.0.7</powermock.module.junit4.version>
 		<powermock.api.mockito.version>2.0.7</powermock.api.mockito.version>
-		<jackson.version>2.12.0</jackson.version>
+		<jackson.version>2.12.6.1</jackson.version>
 		<junit.version>4.12</junit.version>
 	</properties>
 	<dependencies>
