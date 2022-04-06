@@ -21,6 +21,9 @@ if [ -z $MOSIP_OPENCRVS_PARTNER_CLIENT_SHA_SECRET ]; then read -p "Give a random
 if [ -z $MOSIP_OPENCRVS_PARTNER_USERNAME ]; then read -p "Give MOSIP OpenCRVS Partner Username : " MOSIP_OPENCRVS_PARTNER_USERNAME; fi
 if [ -z $MOSIP_OPENCRVS_PARTNER_PASS ]; then read -p "Give MOSIP OpenCRVS Partner Password : " MOSIP_OPENCRVS_PARTNER_PASS; fi
 
+if [ -z $MOSIP_PRIVATE_KEY_PATH ]; then read -p "Give MOSIP Private Key Path : " MOSIP_PRIVATE_KEY_PATH; fi
+if [ -z $OPENCRVS_PUBLIC_KEY_PATH ]; then read -p "Give OpenCRVS Public Cert Path : " OPENCRVS_PUBLIC_KEY_PATH; fi
+
 echo Create $NS namespace
 kubectl create ns $NS
 
@@ -34,16 +37,23 @@ echo Copy Configmaps.
 
 echo Copy Secrets.
 ./copy_secrets.sh
+kubectl -n $NS delete --ignore-not-found=true secret opencrvs-client-creds
 kubectl -n $NS create secret generic opencrvs-client-creds \
   --from-literal=opencrvs_client_id=$OPENCRVS_CLIENT_ID \
   --from-literal=opencrvs_client_secret_key=$OPENCRVS_CLIENT_SECRET \
   --from-literal=opencrvs_client_sha_secret=$OPENCRVS_CLIENT_SHA_SECRET
 
+kubectl -n $NS delete --ignore-not-found=true secret opencrvs-partner-client-creds
 kubectl -n $NS create secret generic opencrvs-partner-client-creds \
   --from-literal=mosip_opencrvs_partner_client_id=$MOSIP_OPENCRVS_PARTNER_CLIENT_ID \
   --from-literal=mosip_opencrvs_partner_client_sha_secret=$MOSIP_OPENCRVS_PARTNER_CLIENT_SHA_SECRET \
   --from-literal=mosip_opencrvs_partner_username=$MOSIP_OPENCRVS_PARTNER_USERNAME \
-  --from-literal=mosip_opencrvs_partner_password=$MOSIP_OPENCRVS_PARTNER_PASSWORD
+  --from-literal=mosip_opencrvs_partner_password=$MOSIP_OPENCRVS_PARTNER_PASS
+
+kubectl -n $NS delete --ignore-not-found=true secret opencrvs-partner-certs-keys
+kubectl -n $NS create secret generic opencrvs-partner-certs-keys \
+  --from-file=opencrvs-pub.key=$OPENCRVS_PUBLIC_KEY_PATH \
+  --from-file=mosip-priv.key=$MOSIP_PRIVATE_KEY_PATH
 
 echo Installing mosip-side opencrvs-mediator...
 helm -n $NS install opencrvs-mediator mosip/opencrvs-mediator \
@@ -52,6 +62,7 @@ helm -n $NS install opencrvs-mediator mosip/opencrvs-mediator \
   --set mediator.opencrvs.clientSecretName="opencrvs-client-creds" \
   --set mediator.opencrvs.partnerClientSecretName="opencrvs-partner-client-creds" \
   --set mediator.opencrvs.receiveCredentialUrl=$OPENCRVS_RECEIVE_CREDENTIAL_URL \
+  --set mediator.opencrvs.certsKeysSecretName="opencrvs-partner-certs-keys" \
   --set mediator.mosipOpencrvsKeycloakClientId="mosip-resident-client" \
   --set istio.existingGateway="istio-system/public" \
   --wait
