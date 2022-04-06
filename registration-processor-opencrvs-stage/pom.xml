@@ -19,7 +19,7 @@
 		<spring-cloud-config.version>2.0.0.RELEASE</spring-cloud-config.version>
 		<spring.boot.version>2.0.2.RELEASE</spring.boot.version>
 		<mockito.version>3.4.4</mockito.version>
-		<h2.version>1.4.195</h2.version>
+		<h2.version>2.1.210</h2.version>
 		<vertx.version>3.9.1</vertx.version>
 		<registration.processor.core.version>1.2.0</registration.processor.core.version>
 		<registration.status.service.version>1.2.0</registration.status.service.version>
