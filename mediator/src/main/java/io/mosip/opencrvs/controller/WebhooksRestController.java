@@ -76,9 +76,10 @@ public class WebhooksRestController {
         }
 
         try {
-            producer.produce(body);
+            producer.produce(null, body);
         } catch (Exception e) {
             LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "RestController", "POST / birth; Error while producing data " + ExceptionUtils.getStackTrace(e));
+            return ResponseEntity.ok("{\"message\":\"" + Constants.PACKET_CREATION_FAILED_IMPROPER_JSON + "\"}\n");
         }
 
         return ResponseEntity.ok("{\"message\":\"" + Constants.PACKET_CREATION_STARTED + "\"}\n");

@@ -97,11 +97,11 @@ public class Receiver {
 					String preProcessResult = preProcess(record.key(),record.value());
 					LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+record.key(),"PreProcessResult : " + preProcessResult);
 					if(preProcessResult!=null && !preProcessResult.isEmpty()){
-						createAndUploadPacket(preProcessResult);
+						createAndUploadPacket(record.key(), preProcessResult);
 					}
 				} catch (BaseCheckedException e){
 					LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Error while processing transaction. Sending to reproduce" + ExceptionUtils.getStackTrace(e));
-					producer.reproduce(record.value());
+					producer.reproduce(record.key(),record.value());
 				} catch (Exception e){
 					LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Error while processing transaction. " + ExceptionUtils.getStackTrace(e));
 				}
@@ -143,7 +143,7 @@ public class Receiver {
 		}
 	}
 
-	public void createAndUploadPacket(String requestBody) throws BaseCheckedException {
+	public void createAndUploadPacket(String txnId, String requestBody) throws BaseCheckedException {
 		String auditAppName = env.getProperty(Constants.AUDIT_APP_NAME);
 		String auditAppId = env.getProperty(Constants.AUDIT_APP_ID);
 		String objectStoreBaseLocation = env.getProperty("object.store.base.location");
@@ -151,8 +151,6 @@ public class Receiver {
 
 		String centerId = env.getProperty("opencrvs.center.id");
 		String machineId = env.getProperty("opencrvs.machine.id");
-
-		String txnId = opencrvsDataUtil.getTxnIdFromBody(requestBody);
 
 		if(!jdbcUtil.ifTxnExists(txnId)){
 			jdbcUtil.createBirthTransaction(txnId);

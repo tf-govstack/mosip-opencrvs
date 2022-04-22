@@ -12,7 +12,8 @@ public class Constants{
   public static final String PROOF_OF_IDENTITY = "proofOfIdentity";
   public static final String IDENTITY = "identity";
 
-  public static final String PACKET_CREATION_STARTED = "Received. Packet Creation Started...\n";
+  public static final String PACKET_CREATION_STARTED = "Received. Packet Creation Started.";
+  public static final String PACKET_CREATION_FAILED_IMPROPER_JSON = "Improperly JSON Received.";
 
   public static final String DATETIME_PATTERN = "opencrvs.datetime.pattern";
 

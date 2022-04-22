@@ -1,15 +1,8 @@
-name: Regproc Opencrvs Stage Maven Package and docker upon a push
+name: Mediator Maven Package and docker upon a release
 
 on:
-  push:
-    paths:
-      - registration-processor-opencrvs-stage/**
-    branches:
-      - '!release-branch'
-      - release-1*
-      - master
-      - 1.*
-      - develop
+  release:
+    types: [published]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,10 +25,10 @@ jobs:
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
           ${{ runner.os }}-maven-${{ env.BRANCH_NAME }}
-
-    - name: Build Regproc Stage with Maven
+    
+    - name: Build Mediator with Maven
       run: |
-        cd registration-processor-opencrvs-stage
+        cd mediator
         mvn -B clean package
 
     - name: Ready the springboot artifacts
@@ -47,13 +40,13 @@ jobs:
         name: release
         path: ./release.zip
 
-  docker-repgroc-opencrvs-stage:
+  docker-opencrvs-mediator:
     needs: build
     runs-on: ubuntu-latest
     env:
       NAMESPACE: ${{ secrets.dev_namespace_docker_hub }}
-      SERVICE_NAME: registration-processor-opencrvs-stage
-      SERVICE_LOCATION: registration-processor-opencrvs-stage
+      SERVICE_NAME: mosip-opencrvs-mediator
+      SERVICE_LOCATION: mediator
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v1
@@ -65,25 +58,25 @@ jobs:
         run: |
           # Strip git ref prefix from version
           echo "BRANCH_NAME=$(echo ${{ github.ref }} | sed -e 's,.*/\(.*\),\1,')" >> $GITHUB_ENV
-
+          
       - name: Get version info from pom
         id: getPomVersion
         uses: mavrosxristoforos/get-xml-info@1.0
         with:
-          xml-file: ./${{ env.SERVICE_LOCATION }}/pom.xml
-          xpath: /*[local-name()="project"]/*[local-name()="version"]
-
+          xml-file: ./${{ env.SERVICE_LOCATION }}/pom.xml 
+          xpath: /*[local-name()="project"]/*[local-name()="version"] 
+      
       - name: Unzip and extract the resident-service
         run: unzip -uj "release.zip" "${{ env.SERVICE_LOCATION }}/target/*" -d "./${{ env.SERVICE_LOCATION }}/target"
-
+      
       - name: Build image
         run: |
           cd "./${{env.SERVICE_LOCATION}}"
           docker build . --file Dockerfile --tag ${{ env.SERVICE_NAME }}
-
+          
       - name: Log into registry
         run: echo "${{ secrets.release_docker_hub }}" | docker login -u ${{ secrets.actor_docker_hub }} --password-stdin
-
+        
       - name: Push image
         run: |
           IMAGE_ID=$NAMESPACE/$SERVICE_NAME
