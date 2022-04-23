@@ -1,6 +1,8 @@
 package io.mosip.opencrvs.util;
 
+import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.exception.BaseUncheckedException;
+import io.mosip.kernel.core.exception.ExceptionUtils;
 import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.opencrvs.constant.LoggingConstants;
 import io.mosip.opencrvs.dto.ReceiveDto;
@@ -115,11 +117,11 @@ public class OpencrvsDataUtil {
 
         return returner;
     }
-    public String getTxnIdFromBody(String requestBody){
+    public String getTxnIdFromBody(String requestBody) throws BaseCheckedException {
         try{
             return new JSONObject(requestBody).getString("id");
         } catch(JSONException je){
-            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting txn_id ",je);
+            throw new BaseCheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting txn_id ",je);
         }
     }
     public String getOpencrvsIdFromPatientBody(JSONObject patient){

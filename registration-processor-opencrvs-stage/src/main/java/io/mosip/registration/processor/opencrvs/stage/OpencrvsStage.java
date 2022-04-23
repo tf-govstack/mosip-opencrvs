@@ -72,18 +72,11 @@ import io.mosip.registration.processor.status.dto.InternalRegistrationStatusDto;
 import io.mosip.registration.processor.status.dto.RegistrationStatusDto;
 import io.mosip.registration.processor.status.service.RegistrationStatusService;
 
-/**
- * The Class OpencrvsStage.
- *
- * @author M1048358 Alok
- * @author Ranjitha Siddegowda
- * @author Sowmya
- */
-
 @Service
 @Configuration
 @EnableScheduling
-@ComponentScan(basePackages = { "io.mosip.registration.processor.core.config",
+@ComponentScan(basePackages = { "io.mosip.kernel.auth.defaultadapter",
+		"io.mosip.registration.processor.core.config",
 		"io.mosip.registration.processor.stages.config",
 		"io.mosip.registration.processor.opencrvs.config",
 		"io.mosip.registrationprocessor.stages.config",

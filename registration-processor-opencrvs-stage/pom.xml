@@ -7,7 +7,7 @@
 	<groupId>io.mosip.registrationprocessor</groupId>
 	<artifactId>registration-processor-opencrvs-stage</artifactId>
 	<name>registration-processor-opencrvs-stage</name>
-	<version>1.2.0-SNAPSHOT</version>
+	<version>1.2.1-SNAPSHOT</version>
 	<properties>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
@@ -21,15 +21,27 @@
 		<mockito.version>3.4.4</mockito.version>
 		<h2.version>1.4.195</h2.version>
 		<vertx.version>3.9.1</vertx.version>
-		<registration.processor.core.version>1.2.0</registration.processor.core.version>
-		<registration.status.service.version>1.2.0</registration.status.service.version>
-		<registration.processor.rest.client.version>1.2.0</registration.processor.rest.client.version>
-		<packet.info.storage.service.version>1.2.0</packet.info.storage.service.version>
+		<registration.processor.core.version>1.2.1-SNAPSHOT</registration.processor.core.version>
+		<registration.status.service.version>1.2.1-SNAPSHOT</registration.status.service.version>
+		<registration.processor.rest.client.version>1.2.1-SNAPSHOT</registration.processor.rest.client.version>
+		<packet.info.storage.service.version>1.2.1-SNAPSHOT</packet.info.storage.service.version>
+		<kernel.auth.adapter.version>1.2.1-SNAPSHOT</kernel.auth.adapter.version>
 		<powermock.module.junit4.version>2.0.7</powermock.module.junit4.version>
 		<powermock.api.mockito.version>2.0.7</powermock.api.mockito.version>
 		<jackson.version>2.12.0</jackson.version>
 		<junit.version>4.12</junit.version>
 	</properties>
+	<repositories>
+		<repository>
+			<id>ossrh</id>
+			<name>CentralRepository</name>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+			<layout>default</layout>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
 	<dependencies>
 		<dependency>
 			<groupId>org.mockito</groupId>
@@ -131,6 +143,25 @@
 				<exclusion>
 					<groupId>org.springframework.boot</groupId>
 					<artifactId>spring-boot-starter-security</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>io.mosip.kernel</groupId>
+			<artifactId>kernel-auth-adapter</artifactId>
+			<version>${kernel.auth.adapter.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-security</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.springframework.security</groupId>
+					<artifactId>spring-security-test</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-webflux</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>

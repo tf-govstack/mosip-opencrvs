@@ -1,5 +1,6 @@
 package io.mosip.opencrvs.service;
 
+import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.exception.ExceptionUtils;
 import io.mosip.opencrvs.constant.LoggingConstants;
 import io.mosip.opencrvs.dto.ReceiveDto;
@@ -39,21 +40,25 @@ public class Producer {
     @Value("${opencrvs.reproduce.on.error.delay.ms}")
     private String reproducerOnErrorDelayMs;
 
-    public void produce(String data) {
+    public void produce(String txnId, String data) throws BaseCheckedException {
         String topicName = env.getProperty("mosip.opencrvs.kafka.topic");
-        kafkaUtil.syncPutMessageInKafka(topicName, opencrvsDataUtil.getTxnIdFromBody(data), data);
+        if(txnId!=null && !txnId.isEmpty()) {
+            kafkaUtil.syncPutMessageInKafka(topicName, txnId, data);
+        } else {
+            kafkaUtil.syncPutMessageInKafka(topicName, opencrvsDataUtil.getTxnIdFromBody(data), data);
+        }
     }
 
     @Async
-    public void reproduce(String data) {
+    public void reproduce(String txnId, String data) {
         if (!("true".equalsIgnoreCase(reproducerOnError))) return;
         try {
             try {
                 Thread.sleep(Long.parseLong(reproducerOnErrorDelayMs));
             } catch (Exception ignored) {}
-            produce(data);
+            produce(txnId, data);
         } catch (Exception e) {
-            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - " + opencrvsDataUtil.getTxnIdFromBody(data), "Unable to put back failed transaction to producer. " + ExceptionUtils.getStackTrace(e));
+            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - " + txnId, "Unable to put back failed transaction to producer. " + ExceptionUtils.getStackTrace(e));
         }
     }
 }

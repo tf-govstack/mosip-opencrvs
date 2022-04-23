@@ -91,7 +91,7 @@ jobs:
           # Change all uppercase to lowercase
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
           echo "push version ${{steps.getPomVersion.outputs.info}}"
-          if [[ $BRANCH_NAME == main ]]; then
+          if [[ $BRANCH_NAME == main || $BRANCH_NAME == master ]]; then
             VERSION=latest
           else
             VERSION=$BRANCH_NAME

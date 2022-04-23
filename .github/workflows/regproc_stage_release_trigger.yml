@@ -1,15 +1,8 @@
-name: Regproc Opencrvs Stage Maven Package and docker upon a push
+name: Regproc Opencrvs Stage Maven Package and docker upon a release
 
 on:
-  push:
-    paths:
-      - registration-processor-opencrvs-stage/**
-    branches:
-      - '!release-branch'
-      - release-1*
-      - master
-      - 1.*
-      - develop
+  release:
+    types: [published]
 jobs:
   build:
     runs-on: ubuntu-latest

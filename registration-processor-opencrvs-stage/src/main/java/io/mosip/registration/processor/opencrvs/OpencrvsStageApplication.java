@@ -1,7 +1,7 @@
 package io.mosip.registration.processor.opencrvs;
 
 import io.mosip.registration.processor.opencrvs.stage.OpencrvsStage;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 public class OpencrvsStageApplication {
 
