@@ -22,8 +22,9 @@ This document describe deployment of `mosip-side-mediator` and `registration-pro
   - an _auth_policy_ that has only `UIN` in _sharableAttributes_.
   - _credential_type_ is `opencrvs`.
 - Furthermore, change the following settings for the `opencrvs-partner` client (that was just created), in keycloak admin console, in `Mosip` realm.
-  - Change _Access Type_ to `public`.
-  - Enable _Direct Access Grants_.
+  - Enable _Direct Access Grants Enabled_.
+  - Enable _Service Accounts Enabled_.
+  - Enable _Authorization Enabled_.
   - Change _Valid Redirect URIs_ to `*`.
 - Apart from creating the partner keycloak client, create a new user with the same username as the partner name (that was previously given), with any password.
 - Apart from the certificates obtained from OpenCRVS, create a certificate key pair for MOSIP, this public certificate will later be shared with OpenCRVS.

@@ -27,6 +27,8 @@ public class RestTokenUtil {
     private String mosipClientSecret;
     @Value("${mosip.opencrvs.partner.client.id}")
     private String partnerClientId;
+    @Value("${mosip.opencrvs.partner.client.secret}")
+    private String partnerClientSecret;
     @Value("${mosip.opencrvs.partner.username}")
     private String partnerUsername;
     @Value("${mosip.opencrvs.partner.password}")
@@ -103,7 +105,7 @@ public class RestTokenUtil {
 
     public String getPartnerAuthToken(String context){
         try {
-            return getOIDCToken(iamTokenEndpoint,partnerClientId,partnerUsername,partnerPassword);
+            return getOIDCToken(iamTokenEndpoint,partnerClientId,partnerClientSecret,partnerUsername,partnerPassword);
         } catch (Exception e) {
             LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,context,"Error getting partner auth token "+ ExceptionUtils.getStackTrace(e));
             return null;
