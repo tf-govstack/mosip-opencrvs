@@ -1,10 +1,10 @@
 # Deployment
 
 ## Overview
-This document describe deployment of `mosip-side-mediator` and `registration-processor-opencrvs-stage`.
+This document describes deployment of `mosip-side-mediator` and `registration-processor-opencrvs-stage`.
 
 ## Prerequisites
-- The following command line utilities.
+The following command line utilities.
   - `psql`, `kubectl`,`helm`,`bash`, `curl`, `jq`
 
 ## Installation
