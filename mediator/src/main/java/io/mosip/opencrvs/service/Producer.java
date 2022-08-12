@@ -25,8 +25,8 @@ import io.mosip.opencrvs.util.LogUtil;
 public class Producer {
     private static Logger LOGGER = LogUtil.getLogger(Producer.class);
 
-    @Autowired
-    private Environment env;
+    @Value("${mosip.opencrvs.kafka.topic.name}")
+    private String kafkaTopicName;
 
     @Autowired
     private KafkaUtil kafkaUtil;
@@ -41,12 +41,7 @@ public class Producer {
     private String reproducerOnErrorDelayMs;
 
     public void produce(String txnId, String data) throws BaseCheckedException {
-        String topicName = env.getProperty("mosip.opencrvs.kafka.topic");
-        if(txnId!=null && !txnId.isEmpty()) {
-            kafkaUtil.syncPutMessageInKafka(topicName, txnId, data);
-        } else {
-            kafkaUtil.syncPutMessageInKafka(topicName, opencrvsDataUtil.getTxnIdFromBody(data), data);
-        }
+        kafkaUtil.syncPutMessageInKafka(kafkaTopicName, txnId, data);
     }
 
     @Async

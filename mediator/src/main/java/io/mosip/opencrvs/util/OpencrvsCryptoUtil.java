@@ -51,7 +51,7 @@ public class OpencrvsCryptoUtil {
     public void init(){
         try{
             PEMParser parser = new PEMParser(new FileReader(FileUtils.getFile(mosipPrivKeyPath)));
-            mosipPrivateKey = new JcaPEMKeyConverter().getPrivateKey(((PEMKeyPair)parser.readObject()).getPrivateKeyInfo());
+            mosipPrivateKey = new JcaPEMKeyConverter().getPrivateKey((PrivateKeyInfo) parser.readObject());
         } catch(Exception e) {
             throw new BaseUncheckedException(ErrorCode.CRYPTO_READ_PRIVATE_KEY_EXCEPTION_CODE,ErrorCode.CRYPTO_READ_PRIVATE_KEY_EXCEPTION_MESSAGE,e);
         }
@@ -86,6 +86,11 @@ public class OpencrvsCryptoUtil {
         }
         catch (Exception e){
             throw new BaseCheckedException(ErrorCode.CRYPTO_SIGN_VERIFY_EXCEPTION_CODE,ErrorCode.CRYPTO_SIGN_VERIFY_EXCEPTION_MESSAGE,e);
+        }
+    }
+    public void verifyThrowException(byte[] data, byte[] signature) throws BaseCheckedException{
+        if(this.verify(data, signature)){
+            throw new BaseCheckedException(ErrorCode.CRYPTO_SIGN_VERIFY_EXCEPTION_CODE,ErrorCode.CRYPTO_SIGN_VERIFY_EXCEPTION_MESSAGE);
         }
     }
 

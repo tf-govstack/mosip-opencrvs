@@ -5,6 +5,7 @@ import io.mosip.kernel.core.exception.BaseUncheckedException;
 import io.mosip.kernel.core.exception.ExceptionUtils;
 import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.opencrvs.constant.LoggingConstants;
+import io.mosip.opencrvs.dto.DecryptedEventDto;
 import io.mosip.opencrvs.dto.ReceiveDto;
 import io.mosip.opencrvs.error.ErrorCode;
 import org.json.JSONArray;
@@ -13,7 +14,7 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.Locale;
+import java.util.List;
 
 @Component
 public class OpencrvsDataUtil {
@@ -43,35 +44,33 @@ public class OpencrvsDataUtil {
     private String dummyPostalCode;
     @Value("${opencrvs.data.dummy.phone}")
     private String dummyPhone;
+    @Value("${opencrvs.data.dummy.emailSuffix}")
+    private String dummyEmailSuffix;
 
-    public ReceiveDto buildIdJson(String opencrvsRequestBody){
-        JSONObject opencrvsJSONRequest;
-        JSONArray contextEntries;
-        JSONObject patient;
-        JSONObject task;
+    public ReceiveDto buildIdJson(DecryptedEventDto opencrvsRequestBody){
+        List<DecryptedEventDto.Event.Context.Entry> contextEntries;
+        DecryptedEventDto.Event.Context.Entry.Resource patient = null;
+        DecryptedEventDto.Event.Context.Entry.Resource task = null;
         try{
-            opencrvsJSONRequest = new JSONObject(opencrvsRequestBody);
-            contextEntries = opencrvsJSONRequest.getJSONObject("event").getJSONArray("context").getJSONObject(0).getJSONArray("entry");
-            patient = (JSONObject)returnOutputOfArrayIfInputIsValue(contextEntries,"resource.resourceType","Patient","resource");
-            task = (JSONObject)returnOutputOfArrayIfInputIsValue(contextEntries,"resource.resourceType","Task","resource");
-            if(patient == null){
-                LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"ReceiveDto::build()","Error processing patient. Got null patient");
+            contextEntries = opencrvsRequestBody.event.context.get(0).entry;
+            for(DecryptedEventDto.Event.Context.Entry entry: contextEntries){
+                if("Patient".equals(entry.resource.resourceType)){
+                    patient = entry.resource;
+                } else if("Task".equals(entry.resource.resourceType)) {
+                    task = entry.resource;
+                }
+                if (patient!=null && task!=null) break;
+            }
+            if(patient == null || task == null){
+                LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"ReceiveDto::build()","Error processing patient/task. Got null patient/task");
                 throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
             }
-            if(task == null){
-                LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"ReceiveDto::build()","Error processing task. Got null task");
-                throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
-            }
-        } catch(JSONException je){
-            LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"ReceiveDto::build()", ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
-            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
+        } catch(NullPointerException ne){
+            LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"ReceiveDto::build()", "Received null pointer exception", ne);
+            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE, ne);
         }
 
         ReceiveDto returner = new ReceiveDto();
-
-        //returner.setIdValue(rid);
-        //returner.setCenterId(centerId);
-        //returner.setMachineId(machineId);
 
         returner.setOpencrvsId(getOpencrvsIdFromPatientBody(patient));
 
@@ -83,7 +82,6 @@ public class OpencrvsDataUtil {
                 "\"IDSchemaVersion\":" + idschemaVersion + "," +
                 "\"fullName\":" + fullName + "," +
                 "\"dateOfBirth\":" + getDOBFromPatientBody(patient) + "," +
-                //"\"2003/10/05\""
                 "\"gender\":" + getGenderFromPatientBody(patient) +"," +
                 "\"addressLine1\":" + dummyAddressLine1 + "," +
                 "\"addressLine2\":" + dummyAddressLine2 + "," +
@@ -117,31 +115,26 @@ public class OpencrvsDataUtil {
 
         return returner;
     }
-    public String getTxnIdFromBody(String requestBody) throws BaseCheckedException {
-        try{
-            return new JSONObject(requestBody).getString("id");
-        } catch(JSONException je){
-            throw new BaseCheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting txn_id ",je);
+
+    public String getOpencrvsIdFromPatientBody(DecryptedEventDto.Event.Context.Entry.Resource patient){
+        for(DecryptedEventDto.Event.Context.Entry.Resource.Identifier identifier : patient.identifier){
+            if("BIRTH_REGISTRATION_NUMBER".equals(identifier.type)){
+                return identifier.value;
+            }
         }
-    }
-    public String getOpencrvsIdFromPatientBody(JSONObject patient){
-        try{
-            return (String)returnOutputOfArrayIfInputIsValue(patient.getJSONArray("identifier"),"type","BIRTH_REGISTRATION_NUMBER","value");
-        } catch(JSONException je){
-            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting opencrvs id ",je);
-        }
+        return null;
     }
 
-    public String getFullNameFromPatientBody(JSONObject patient){
+    public String getFullNameFromPatientBody(DecryptedEventDto.Event.Context.Entry.Resource patient){
         try{
             String ret = "";
-            JSONArray names = patient.getJSONArray("name");
+            List<DecryptedEventDto.Event.Context.Entry.Resource.Name> names = patient.name;
 
             ret+="[";
-            for (int i=0;i<names.length();i++){
-                String givenName = names.getJSONObject(i).getJSONArray("given").join(" ").replaceAll("\\s","").replaceAll("\"","");
-                String familyName = names.getJSONObject(i).getJSONArray("family").join(" ").replaceAll("\\s","").replaceAll("\"","");
-                String langCode = names.getJSONObject(i).getString("use");
+            for (int i=0;i<names.size();i++){
+                String givenName = String.join(" ", names.get(i).given).replaceAll("\"","");
+                String familyName = String.join(" ", names.get(i).family).replaceAll("\"","");
+                String langCode = names.get(i).use;
 
                 boolean isSet = false;
                 for(String langMap: langCodeMapping.split(",")){
@@ -160,82 +153,56 @@ public class OpencrvsDataUtil {
                     "\"language\":\""+langCode+"\"," +
                     "\"value\":\""+ givenName + " " + familyName + "\"" +
                 "}";
-                if(i!=names.length()-1) ret+=",";
+                if(i!=names.size()-1) ret+=",";
             }
             ret+="]";
             return ret;
-        } catch(JSONException je){
-            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting Full Name from request ",je);
+        } catch(NullPointerException ne){
+            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting Full Name from request ", ne);
         }
     }
 
-    public String getGenderFromPatientBody(JSONObject patient){
+    public String getGenderFromPatientBody(DecryptedEventDto.Event.Context.Entry.Resource patient){
         try{
             return "[{" +
                 "\"language\":\""+ genderDefaultLangCode +"\"," +
-                "\"value\":\""+ patient.getString("gender") + "\"" +
+                "\"value\":\""+ patient.gender + "\"" +
             "}]";
-        } catch(JSONException je){
-            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting gender from request ",je);
+        } catch(NullPointerException ne){
+            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting gender from request ", ne);
         }
     }
 
-    //dummy
-    public String getEmailFromPatientBody(JSONObject patient){
+    public String getEmailFromPatientBody(DecryptedEventDto.Event.Context.Entry.Resource patient){
+        //dummy implementation
         try{
-            JSONObject defaultName = patient.getJSONArray("name").getJSONObject(0);
-            String givenName = defaultName.getJSONArray("given").join(".").replaceAll("\\s","").replaceAll("\"","").toLowerCase();
-            String familyName = defaultName.getJSONArray("family").join(".").replaceAll("\\s","").replaceAll("\"","").toLowerCase();
-            return "\"" + givenName + "." + familyName + ".123@mailinator.com\"";
-        } catch(JSONException je){
-            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting email id from request ",je);
+            DecryptedEventDto.Event.Context.Entry.Resource.Name defaultName = patient.name.get(0);
+            String givenName = String.join(".", defaultName.given).replaceAll("\\s","").replaceAll("\"","").toLowerCase();
+            String familyName = String.join(".", defaultName.family).replaceAll("\\s","").replaceAll("\"","").toLowerCase();
+            return "\"" + givenName + "." + familyName + dummyEmailSuffix + "\"";
+        } catch(NullPointerException ne){
+            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting email id from request ", ne);
         }
     }
 
-    public String getDOBFromPatientBody(JSONObject patient){
+    public String getDOBFromPatientBody(DecryptedEventDto.Event.Context.Entry.Resource patient){
         try{
-            return "\""+patient.getString("birthDate").replaceAll("-","\\/")+"\"";
-        } catch(JSONException je){
-            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting DOB from request",je);
+            return "\""+patient.birthDate.replaceAll("-","\\/")+"\"";
+        } catch(NullPointerException ne){
+            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting DOB from request", ne);
         }
     }
 
-    public String getPhoneFromTaskBody(JSONObject task){
+    public String getPhoneFromTaskBody(DecryptedEventDto.Event.Context.Entry.Resource task){
         try{
-            String str = "\"" + returnOutputOfArrayIfInputEndsWithValue(task.getJSONArray("extension"),"url","contact-person-phone-number","valueString") + "\"";
-            //LOGGER.info(LoggingConstants.SESSION,LoggingConstants.ID,"GETTING PHONE","Here phone: "+str+" here json: "+task);
-            return str;
-        } catch(JSONException je){
-            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting phone number from request ",je);
-        }
-    }
-
-    /* [{ "input": "inputValue", "output": "return"},...] */
-    public Object returnOutputOfArrayIfInputIsValue(JSONArray arr, String input, String inputValue, String output) throws JSONException{
-        for(int i=0;i<arr.length();i++){
-            JSONObject json = arr.getJSONObject(i);
-            if(inputValue.equalsIgnoreCase((String)getJSONNested(json,input))){
-                return getJSONNested(json,output);
+            for(DecryptedEventDto.Event.Context.Entry.Resource.Extension extension : task.extension){
+                if (extension.url.toLowerCase().endsWith("contact-person-phone-number")){
+                    return "\"" + extension.valueString + "\"";
+                }
             }
+            return null;
+        } catch(NullPointerException ne){
+            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting phone number from request ", ne);
         }
-        return null;
-    }
-
-    public Object returnOutputOfArrayIfInputEndsWithValue(JSONArray arr, String input, String inputValue, String output) throws JSONException{
-        for(int i=0;i<arr.length();i++){
-            JSONObject json = arr.getJSONObject(i);
-            if(((String)getJSONNested(json,input)).toLowerCase().endsWith(inputValue.toLowerCase())){
-                return getJSONNested(json,output);
-            }
-        }
-        return null;
-    }
-
-    public Object getJSONNested(JSONObject json, String input) throws JSONException{
-        Object ret=json;
-        for(String str: input.split("\\.")){
-            ret=((JSONObject)ret).get(str);
-        }
-        return ret;
     }
 }

@@ -1,10 +1,6 @@
 package io.mosip.opencrvs.constant;
 
 public class Constants{
-  //for generating audit
-  public static final String AUDIT_APP_NAME = "opencrvs.audit.app.name";
-  public static final String AUDIT_APP_ID = "opencrvs.audit.app.id";
-
   // for packet creation
   public static final String PROOF_OF_ADDRESS = "proofOfAddress";
   public static final String PROOF_OF_DOB = "proofOfDOB";

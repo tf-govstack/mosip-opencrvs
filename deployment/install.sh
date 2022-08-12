@@ -7,7 +7,7 @@ if [ $# -ge 1 ] ; then
 fi
 
 NS=opencrvs
-CHART_VERSION=1.2.0
+CHART_VERSION=12.0.2
 
 if [ -z $OPENCRVS_AUTH_URL ]; then read -p "Give Opencrvs Auth Url : " OPENCRVS_AUTH_URL ; fi
 if [ -z $OPENCRVS_RECEIVE_CREDENTIAL_URL ]; then read -p "Give Opencrvs Receive Uin on Birth Url : " OPENCRVS_RECEIVE_CREDENTIAL_URL ; fi
@@ -17,6 +17,7 @@ if [ -z $OPENCRVS_CLIENT_SECRET ]; then read -p "Give Opencrvs Client secret : "
 if [ -z $OPENCRVS_CLIENT_SHA_SECRET ]; then read -p "Give Opencrvs Client sha secret : " OPENCRVS_CLIENT_SHA_SECRET; fi
 
 if [ -z $MOSIP_OPENCRVS_PARTNER_CLIENT_ID ]; then read -p "Give MOSIP OpenCRVS Partner Client id : " MOSIP_OPENCRVS_PARTNER_CLIENT_ID; fi
+if [ -z $MOSIP_OPENCRVS_PARTNER_CLIENT_SECRET ]; then read -p "Give MOSIP OpenCRVS Partner Client secret : " MOSIP_OPENCRVS_PARTNER_CLIENT_SECRET; fi
 if [ -z $MOSIP_OPENCRVS_PARTNER_CLIENT_SHA_SECRET ]; then read -p "Give a random MOSIP OpenCRVS Partner Client sha secret : " MOSIP_OPENCRVS_PARTNER_CLIENT_SHA_SECRET; fi
 if [ -z $MOSIP_OPENCRVS_PARTNER_USERNAME ]; then read -p "Give MOSIP OpenCRVS Partner Username : " MOSIP_OPENCRVS_PARTNER_USERNAME; fi
 if [ -z $MOSIP_OPENCRVS_PARTNER_PASS ]; then read -p "Give MOSIP OpenCRVS Partner Password : " MOSIP_OPENCRVS_PARTNER_PASS; fi
@@ -46,6 +47,7 @@ kubectl -n $NS create secret generic opencrvs-client-creds \
 kubectl -n $NS delete --ignore-not-found=true secret opencrvs-partner-client-creds
 kubectl -n $NS create secret generic opencrvs-partner-client-creds \
   --from-literal=mosip_opencrvs_partner_client_id=$MOSIP_OPENCRVS_PARTNER_CLIENT_ID \
+  --from-literal=mosip_opencrvs_partner_client_secret=$MOSIP_OPENCRVS_PARTNER_CLIENT_SECRET \
   --from-literal=mosip_opencrvs_partner_client_sha_secret=$MOSIP_OPENCRVS_PARTNER_CLIENT_SHA_SECRET \
   --from-literal=mosip_opencrvs_partner_username=$MOSIP_OPENCRVS_PARTNER_USERNAME \
   --from-literal=mosip_opencrvs_partner_password=$MOSIP_OPENCRVS_PARTNER_PASS

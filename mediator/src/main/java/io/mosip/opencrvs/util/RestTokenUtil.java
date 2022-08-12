@@ -16,6 +16,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Base64;
+import java.util.List;
 
 @Component
 public class RestTokenUtil {
@@ -121,14 +122,14 @@ public class RestTokenUtil {
         }
     }
 
-    public void validateToken(String validateEndpoint, String authToken, String[] requiredRoleList) throws Exception{
+    public void validateToken(String validateEndpoint, String authToken, List<String> requiredRoleList) throws BaseCheckedException{
         HttpHeaders requestHeaders = new HttpHeaders();
         requestHeaders.add("Authorization","Bearer " + authToken);
         HttpEntity<String> request = new HttpEntity<>(requestHeaders);
         try{
             ResponseEntity<String> res = new RestTemplate().exchange(validateEndpoint, HttpMethod.GET,request,String.class);
         } catch(Exception e){
-            throw new Exception("Unable to validate Token");
+            throw new BaseCheckedException(ErrorCode.VALIDATE_TOKEN_EXCEPTION_CODE,ErrorCode.VALIDATE_TOKEN_EXCEPTION_MESSAGE);
         }
 
         if(requiredRoleList==null) return;
@@ -137,10 +138,10 @@ public class RestTokenUtil {
             String tokenD = new String(Base64.getDecoder().decode(authToken.split("\\.")[1]));
             String realmRoles = new JSONObject(tokenD).getJSONObject("realm_access").getJSONArray("roles").toString();
             for(String role: requiredRoleList){
-                if(!realmRoles.contains("\""+role+"\"")) throw new Exception();
+                if(!realmRoles.contains("\""+role+"\"")) throw new BaseCheckedException(ErrorCode.MISSING_ROLE_AUTH_TOKEN_EXCEPTION_CODE,ErrorCode.MISSING_ROLE_AUTH_TOKEN_EXCEPTION_MESSAGE);
             }
-        } catch(Exception e) {
-            throw new Exception("Improper Authorization",e);
+        } catch(JSONException e) {
+            throw new BaseCheckedException(ErrorCode.ERROR_ROLE_AUTH_TOKEN_EXCEPTION_CODE,ErrorCode.ERROR_ROLE_AUTH_TOKEN_EXCEPTION_MESSAGE,e);
         }
     }
 

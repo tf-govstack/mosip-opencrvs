@@ -2,7 +2,6 @@ package io.mosip.opencrvs.util;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.net.URI;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -10,7 +9,6 @@ import java.util.*;
 
 import io.mosip.kernel.core.exception.ExceptionUtils;
 import org.joda.time.DateTime;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -21,7 +19,6 @@ import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.RestClientException;
@@ -29,8 +26,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.util.LinkedMultiValueMap;
 
 import io.mosip.kernel.core.util.DateUtils;
-import io.mosip.kernel.core.util.StringUtils;
-import io.mosip.kernel.core.util.TokenHandlerUtil;
 import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.exception.BaseUncheckedException;
 import io.mosip.kernel.core.logger.spi.Logger;
@@ -140,10 +135,10 @@ public class RestUtil {
         }
     }
 
-    public void websubSubscribe() throws Exception {
+    public void websubSubscribe() throws BaseCheckedException {
         //get authtoken
         String token = restTokenUtil.getPartnerAuthToken("subscribe to websub");
-        if(token==null || token.isEmpty()) throw new Exception(ErrorCode.AUTH_TOKEN_EXCEPTION);
+        if(token==null || token.isEmpty()) throw new BaseCheckedException(ErrorCode.AUTH_TOKEN_EXCEPTION_CODE, ErrorCode.AUTH_TOKEN_EXCEPTION_MESSAGE);
 
         LOGGER.debug(LoggingConstants.SESSION,LoggingConstants.ID,"websubSubscribe","Here partner Auth token: "+token);
 
@@ -161,7 +156,7 @@ public class RestUtil {
             String res = new RestTemplate().postForObject(mosipWebSubHubUrl, requestEntity, String.class);
         } catch (Exception e) {
             LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "subscribe to websub", "Failed to subscribe. Exception: " + ExceptionUtils.getStackTrace(e));
-            throw new Exception(ErrorCode.SUBSCRIBE_FAILED_EXCEPTION);
+            throw new BaseCheckedException(ErrorCode.SUBSCRIBE_FAILED_EXCEPTION_CODE, ErrorCode.SUBSCRIBE_FAILED_EXCEPTION_MESSAGE);
         }
     }
 

@@ -1,9 +1,13 @@
 package io.mosip.opencrvs.controller;
 
-import io.mosip.kernel.core.exception.ExceptionUtils;
+import io.mosip.kernel.core.exception.BaseCheckedException;
+import io.mosip.kernel.core.util.CryptoUtil;
+import io.mosip.opencrvs.dto.BaseEventRequest;
+import io.mosip.opencrvs.dto.ErrorResponse;
+import io.mosip.opencrvs.dto.SimpleMessageResponse;
 import io.mosip.opencrvs.service.Receiver;
+import io.mosip.opencrvs.util.OpencrvsCryptoUtil;
 import io.mosip.opencrvs.util.RestTokenUtil;
-import org.json.JSONObject;
 import org.springframework.core.env.Environment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -36,59 +40,55 @@ public class WebhooksRestController {
 
     @Autowired
     private RestUtil restUtil;
+    @Autowired
+    private OpencrvsCryptoUtil opencrvsCryptoUtil;
 
     @Autowired
     private RestTokenUtil restTokenUtil;
 
-    @GetMapping("/ping")
-    public String ping() {
-        return "ok";
+    @ExceptionHandler(value=BaseCheckedException.class)
+    public ResponseEntity<ErrorResponse> mediatorExceptionHandler(BaseCheckedException bce){
+        if (bce.getErrorCode().equals(ErrorCode.SUBSCRIBE_FAILED_EXCEPTION_CODE) || bce.getErrorCode().equals(ErrorCode.ERROR_ROLE_AUTH_TOKEN_EXCEPTION_CODE) ) {
+            return new ResponseEntity<>(ErrorResponse.setErrors(bce), HttpStatus.INTERNAL_SERVER_ERROR);
+        } else if (bce.getErrorCode().equals(ErrorCode.VALIDATE_TOKEN_EXCEPTION_CODE)) {
+            return new ResponseEntity<>(ErrorResponse.setErrors(bce), HttpStatus.UNAUTHORIZED);
+        } else if (bce.getErrorCode().equals(ErrorCode.MISSING_ROLE_AUTH_TOKEN_EXCEPTION_CODE)) {
+            return new ResponseEntity<>(ErrorResponse.setErrors(bce), HttpStatus.FORBIDDEN);
+        } else {
+            return ResponseEntity.badRequest().body(ErrorResponse.setErrors(bce));
+        }
     }
 
     @PostMapping("/subscribe")
-    public ResponseEntity<String> postSubscribe() {
+    public SimpleMessageResponse postSubscribe() throws BaseCheckedException {
         LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID, "RestController", "POST /subscribe");
-        try {
-            restUtil.websubSubscribe();
-        } catch (Exception e) {
-            if (e.getMessage().equals(ErrorCode.AUTH_TOKEN_EXCEPTION)) {
-                return ResponseEntity.badRequest().body("{\"message\":\"Cannot get auth token\"}\n");
-            } else if (e.getMessage().equals(ErrorCode.SUBSCRIBE_FAILED_EXCEPTION)) {
-                return new ResponseEntity<>("{\"message\":\"Error while subscription\"}\n", HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-        }
-        return ResponseEntity.ok("{\"message\":\"Successfully subscribed\"}\n");
+        restUtil.websubSubscribe();
+        return SimpleMessageResponse.setResponseMessage("Successfully subscribed");
     }
 
     @PostMapping("/unsubscribe")
-    public ResponseEntity<String> unsubscribe() {
-        return ResponseEntity.ok("{\"message\":\"unable to unsubscribe\"}\n");
+    public SimpleMessageResponse unsubscribe() {
+        //until unsubscription
+        return SimpleMessageResponse.setResponseMessage("unable to unsubscribe");
     }
 
     @PostMapping(value = "/birth", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> postBirth(@CookieValue("Authorization") String authToken, @RequestBody String body) {
+    public SimpleMessageResponse postBirth(@CookieValue("Authorization") String authToken, @RequestBody BaseEventRequest body) throws BaseCheckedException{
         LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID, "RestController", "POST /birth; data: " + body);
-        try {
-            restTokenUtil.validateToken(env.getProperty("mosip.iam.validate_endpoint"), authToken, null);
-        } catch (Exception e) {
-            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "postBirth",ExceptionUtils.getStackTrace(e));
-            return new ResponseEntity<>("{\"message\":\"" + e.getMessage() + "\"}\n", HttpStatus.UNAUTHORIZED);
-        }
 
-        try {
-            producer.produce(null, body);
-        } catch (Exception e) {
-            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "RestController", "POST / birth; Error while producing data " + ExceptionUtils.getStackTrace(e));
-            return ResponseEntity.ok("{\"message\":\"" + Constants.PACKET_CREATION_FAILED_IMPROPER_JSON + "\"}\n");
-        }
+        restTokenUtil.validateToken(env.getProperty("mosip.iam.validate_endpoint"), authToken, null);
 
-        return ResponseEntity.ok("{\"message\":\"" + Constants.PACKET_CREATION_STARTED + "\"}\n");
+        opencrvsCryptoUtil.verifyThrowException(CryptoUtil.decodePlainBase64(body.getData()), CryptoUtil.decodePlainBase64(body.getSignature()));
+
+        producer.produce(body.getId(), body.toString());
+
+        return SimpleMessageResponse.setResponseMessage(Constants.PACKET_CREATION_STARTED);
     }
 
     @PostMapping(value = "/receiveCredentialBirth", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> postReceiveUinOnBirth(@CookieValue(value = "Authorization", required = false) String authToken, @RequestBody String body) {
+    public SimpleMessageResponse postReceiveUinOnBirth(@RequestBody String body) {
         restUtil.proxyPassReceivedCredential(body);
-        return ResponseEntity.ok("{\"message\":\"Received\"}\n");
+        return SimpleMessageResponse.setResponseMessage("Received");
     }
 
     @GetMapping("/receiveCredentialBirth")
@@ -111,23 +111,14 @@ public class WebhooksRestController {
     }
 
     @PostMapping(value = "/death", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> postDeath(@CookieValue("Authorization") String authToken, @RequestBody String body) {
+    public SimpleMessageResponse postDeath(@CookieValue("Authorization") String authToken, @RequestBody String body) throws BaseCheckedException {
         LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID, "RestController", "POST /death; data: " + body);
-        try {
-            restTokenUtil.validateToken(env.getProperty("mosip.iam.validate_endpoint"), authToken, null);
-        } catch (Exception e) {
-            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "postDeath", ExceptionUtils.getStackTrace(e));
-            return new ResponseEntity<>("{\"message\":\"" + e.getMessage() + "\"}\n", HttpStatus.UNAUTHORIZED);
-        }
 
-        try{
-            String payId = new JSONObject(body).getString("id");
-            String preProcessResult = receiver.preProcess(payId,body);
-            LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "deactivateUIN","After PreProcess Data: "+preProcessResult);
-        } catch (Exception e) {
-            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "postDeath", ExceptionUtils.getStackTrace(e));
-            return new ResponseEntity<>("{\"message\":\"" + e.getMessage() + "\"}\n", HttpStatus.UNAUTHORIZED);
-        }
-        return ResponseEntity.ok("{\"message\":\"Received\"}\n");
+        restTokenUtil.validateToken(env.getProperty("mosip.iam.validate_endpoint"), authToken, null);
+
+        //work this out
+
+        LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "deactivateUIN","UIN Deactivated");
+        return SimpleMessageResponse.setResponseMessage("Received");
     }
 }

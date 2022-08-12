@@ -23,8 +23,7 @@ This document describe deployment of `mosip-side-mediator` and `registration-pro
   - _credential_type_ is `opencrvs`.
 - Furthermore, change the following settings for the `opencrvs-partner` client (that was just created), in keycloak admin console, in `Mosip` realm.
   - Enable _Direct Access Grants Enabled_.
-  - Enable _Service Accounts Enabled_.
-  - Enable _Authorization Enabled_.
+  - Disable _Service Accounts_.
   - Change _Valid Redirect URIs_ to `*`.
 - Apart from creating the partner keycloak client, create a new user with the same username as the partner name (that was previously given), with any password.
 - Apart from the certificates obtained from OpenCRVS, create a certificate key pair for MOSIP, this public certificate will later be shared with OpenCRVS.
@@ -40,8 +39,10 @@ This document describe deployment of `mosip-side-mediator` and `registration-pro
     export OPENCRVS_CLIENT_SECRET=
     export OPENCRVS_CLIENT_SHA_SECRET=
     export MOSIP_OPENCRVS_PARTNER_CLIENT_ID=
+    export MOSIP_OPENCRVS_PARTNER_CLIENT_SECRET=
     export MOSIP_OPENCRVS_PARTNER_CLIENT_SHA_SECRET=
     export MOSIP_OPENCRVS_PARTNER_USERNAME=
+    export MOSIP_OPENCRVS_PARTNER_PASSWORD=
     export MOSIP_PRIVATE_KEY_PATH=
     export OPENCRVS_PUBLIC_KEY_PATH=
     ./install.sh <cluster-kubeconfig-file>

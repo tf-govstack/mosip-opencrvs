@@ -13,11 +13,11 @@ import org.apache.http.impl.client.HttpClientBuilder;
 // import org.apache.http.impl.client.BasicCookieStore;
 // import org.apache.http.impl.cookie.BasicClientCookie;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -32,12 +32,8 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.RestClientException;
 
-import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.logger.spi.Logger;
 
-import io.mosip.opencrvs.constant.Constants;
-import io.mosip.opencrvs.constant.LoggingConstants;
-import io.mosip.opencrvs.util.RestUtil;
 import io.mosip.opencrvs.util.LogUtil;
 
 @Configuration
@@ -45,8 +41,12 @@ public class BeanConfig{
 
 	private static Logger LOGGER = LogUtil.getLogger(BeanConfig.class);
 
-	@Autowired
-	private Environment env;
+	@Value("${mediator.core.pool.size}")
+	private int mediatorCorePoolSize;
+	@Value("${mediator.max.pool.size}")
+	private int mediatorMaxPoolSize;
+	@Value("${mediator.queue.capacity}")
+	private int mediatorQueueCapacity;
 
 	@Autowired
 	private RestTokenUtil restTokenUtil;
@@ -54,9 +54,9 @@ public class BeanConfig{
 	@Bean
 	public Executor taskExecutor() {
 		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-		executor.setCorePoolSize(Integer.parseInt(env.getProperty("mediator.core.pool.size")));
-		executor.setMaxPoolSize(Integer.parseInt(env.getProperty("mediator.max.pool.size")));
-		executor.setQueueCapacity(Integer.parseInt(env.getProperty("mediator.queue.capacity")));
+		executor.setCorePoolSize(mediatorCorePoolSize);
+		executor.setMaxPoolSize(mediatorMaxPoolSize);
+		executor.setQueueCapacity(mediatorQueueCapacity);
 		executor.setThreadNamePrefix("Mediator-TaskExecutor-");
 		executor.initialize();
 		return executor;
@@ -65,7 +65,7 @@ public class BeanConfig{
 	@Bean
 	public TaskScheduler taskScheduler() {
 		ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
-		taskScheduler.setPoolSize(Integer.parseInt(env.getProperty("mediator.core.pool.size")));
+		taskScheduler.setPoolSize(mediatorCorePoolSize);
 		taskScheduler.setThreadNamePrefix("Mediator-TaskScheduler-");
 		return taskScheduler;
 	}

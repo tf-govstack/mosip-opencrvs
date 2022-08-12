@@ -2,13 +2,16 @@ package io.mosip.opencrvs.service;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.kernel.core.exception.ExceptionUtils;
+import io.mosip.opencrvs.dto.BaseEventRequest;
+import io.mosip.opencrvs.dto.DecryptedEventDto;
 import io.mosip.opencrvs.util.*;
 import org.json.JSONObject;
 import org.json.JSONException;
@@ -22,7 +25,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.scheduling.annotation.Async;
 
@@ -54,6 +56,27 @@ public class Receiver {
 	@Value("${opencrvs.birth.process.type}")
 	private String birthPacketProcessType;
 
+	@Value("${mosip.opencrvs.kafka.consumer.poll.interval.ms}")
+	private String pollIntervalMs;
+
+	@Value("${opencrvs.audit.app.name}")
+	private String auditAppName;
+	@Value("${opencrvs.audit.app.id}")
+	private String auditAppId;
+
+	@Value("${object.store.base.location}")
+	private String objectStoreBaseLocation;
+	@Value("${packet.manager.account.name}")
+	private String packetManagerAccountName;
+
+	@Value("${opencrvs.center.id}")
+	private String centerId;
+	@Value("${opencrvs.machine.id}")
+	private String machineId;
+
+	@Autowired
+	Environment env;
+
 	private Map<Double, String> idschemaCache = new HashMap<>();
 
 	@Autowired
@@ -61,9 +84,6 @@ public class Receiver {
 
 	@Autowired
 	private PacketWriter packetWriter;
-
-	@Autowired
-	private Environment env;
 
 	@Autowired
 	private Producer producer;
@@ -88,17 +108,14 @@ public class Receiver {
 
 	@Async
 	public void receive(){
-		String pollIntervalMs = env.getProperty("mosip.opencrvs.kafka.consumer.poll.interval.ms");
 		while (true) {
 			ConsumerRecords<String, String> records = kafkaUtil.consumerPoll(Duration.ofMillis(Long.parseLong(pollIntervalMs)));
 			for (ConsumerRecord<String, String> record : records) {
 				try {
 					LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Received transaction");
-					String preProcessResult = preProcess(record.key(),record.value());
+					DecryptedEventDto preProcessResult = preProcess(record.key(),record.value());
 					LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+record.key(),"PreProcessResult : " + preProcessResult);
-					if(preProcessResult!=null && !preProcessResult.isEmpty()){
-						createAndUploadPacket(record.key(), preProcessResult);
-					}
+					createAndUploadPacket(record.key(), preProcessResult);
 				} catch (BaseCheckedException e){
 					LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Error while processing transaction. Sending to reproduce" + ExceptionUtils.getStackTrace(e));
 					producer.reproduce(record.key(),record.value());
@@ -122,36 +139,33 @@ public class Receiver {
 		}
 	}
 
-	public String preProcess(String key,String value) throws BaseCheckedException{
+	public DecryptedEventDto preProcess(String key, String value) throws BaseCheckedException{
+		BaseEventRequest request;
+		ObjectMapper objectMapper = new ObjectMapper();
 		try{
-			JSONObject request = new JSONObject(value);
-			byte[] encryptedData = CryptoUtil.decodePlainBase64(request.getString("data"));
-			byte[] signature = CryptoUtil.decodePlainBase64(request.getString("signature"));
+			request = objectMapper.readValue(value, BaseEventRequest.class);
+		} catch(JsonProcessingException je) {
+			LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"kafka message value - json error - " + ExceptionUtils.getStackTrace(je));
+			throw new BaseCheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE, je);
+		}
 
-			if(!opencrvsCryptoUtil.verify(encryptedData,signature)){
-				LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"Invalid Signature. This packet wont be processed.");
-				return null;
-			}
-
-			return new String(opencrvsCryptoUtil.decrypt(encryptedData));
-		} catch(Exception e) {
-			LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"Unable to verify sign or decrypt "+ExceptionUtils.getStackTrace(e));
-			if(e instanceof BaseCheckedException) throw (BaseCheckedException) e;
-			else {
-				throw new BaseCheckedException(ErrorCode.PRE_PROCESS_DATA_EXCEPTION_CODE,ErrorCode.PRE_PROCESS_DATA_EXCEPTION_MESSAGE,e);
-			}
+		String decrypted;
+		try{
+			byte[] encryptedData = CryptoUtil.decodePlainBase64(request.getData());
+			decrypted = new String(opencrvsCryptoUtil.decrypt(encryptedData));
+		} catch(BaseCheckedException e) {
+			LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"Unable to decrypt " + ExceptionUtils.getStackTrace(e));
+			throw e;
+		}
+		try{
+			return objectMapper.readValue(decrypted, DecryptedEventDto.class);
+		} catch(JsonProcessingException je) {
+			LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"Decrypted String - json error - " + ExceptionUtils.getStackTrace(je));
+			throw new BaseCheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE, je);
 		}
 	}
 
-	public void createAndUploadPacket(String txnId, String requestBody) throws BaseCheckedException {
-		String auditAppName = env.getProperty(Constants.AUDIT_APP_NAME);
-		String auditAppId = env.getProperty(Constants.AUDIT_APP_ID);
-		String objectStoreBaseLocation = env.getProperty("object.store.base.location");
-		String packetManagerAccountName = env.getProperty("packet.manager.account.name");
-
-		String centerId = env.getProperty("opencrvs.center.id");
-		String machineId = env.getProperty("opencrvs.machine.id");
-
+	public void createAndUploadPacket(String txnId, DecryptedEventDto requestBody) throws BaseCheckedException {
 		if(!jdbcUtil.ifTxnExists(txnId)){
 			jdbcUtil.createBirthTransaction(txnId);
 		}
@@ -267,7 +281,7 @@ public class Receiver {
 			} else if (e instanceof BaseUncheckedException) {
 				throw (BaseUncheckedException) e;
 			} else {
-				throw new BaseUncheckedException(ErrorCode.UNKNOWN_EXCEPTION_CODE, ErrorCode.UNKNOWN_EXCEPTION_MESSAGE, e);
+				throw new BaseCheckedException(ErrorCode.UNKNOWN_EXCEPTION_CODE, ErrorCode.UNKNOWN_EXCEPTION_MESSAGE, e);
 			}
 		} finally {
 			if (file != null && file.exists())
