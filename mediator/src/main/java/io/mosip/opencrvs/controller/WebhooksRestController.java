@@ -1,10 +1,14 @@
 package io.mosip.opencrvs.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.kernel.core.exception.BaseCheckedException;
+import io.mosip.kernel.core.exception.ExceptionUtils;
 import io.mosip.kernel.core.util.CryptoUtil;
 import io.mosip.opencrvs.dto.BaseEventRequest;
 import io.mosip.opencrvs.dto.ErrorResponse;
 import io.mosip.opencrvs.dto.SimpleMessageResponse;
+import io.mosip.opencrvs.dto.WebsubRequest;
+import io.mosip.opencrvs.service.ReceiveCredentialService;
 import io.mosip.opencrvs.service.Receiver;
 import io.mosip.opencrvs.util.OpencrvsCryptoUtil;
 import io.mosip.opencrvs.util.RestTokenUtil;
@@ -39,6 +43,9 @@ public class WebhooksRestController {
     private Receiver receiver;
 
     @Autowired
+    private ReceiveCredentialService receiveCredentialService;
+
+    @Autowired
     private RestUtil restUtil;
     @Autowired
     private OpencrvsCryptoUtil opencrvsCryptoUtil;
@@ -48,6 +55,7 @@ public class WebhooksRestController {
 
     @ExceptionHandler(value=BaseCheckedException.class)
     public ResponseEntity<ErrorResponse> mediatorExceptionHandler(BaseCheckedException bce){
+        LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "Mediator Exception Handler", "Exception Caught ", bce);
         if (bce.getErrorCode().equals(ErrorCode.SUBSCRIBE_FAILED_EXCEPTION_CODE) || bce.getErrorCode().equals(ErrorCode.ERROR_ROLE_AUTH_TOKEN_EXCEPTION_CODE) ) {
             return new ResponseEntity<>(ErrorResponse.setErrors(bce), HttpStatus.INTERNAL_SERVER_ERROR);
         } else if (bce.getErrorCode().equals(ErrorCode.VALIDATE_TOKEN_EXCEPTION_CODE)) {
@@ -67,7 +75,7 @@ public class WebhooksRestController {
     }
 
     @PostMapping("/unsubscribe")
-    public SimpleMessageResponse unsubscribe() {
+    public SimpleMessageResponse unsubscribe(){
         //until unsubscription
         return SimpleMessageResponse.setResponseMessage("unable to unsubscribe");
     }
@@ -86,8 +94,9 @@ public class WebhooksRestController {
     }
 
     @PostMapping(value = "/receiveCredentialBirth", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public SimpleMessageResponse postReceiveUinOnBirth(@RequestBody String body) {
-        restUtil.proxyPassReceivedCredential(body);
+    public SimpleMessageResponse postReceiveUinOnBirth(@RequestBody WebsubRequest body) {
+        LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID, "postReceiveUinOnBirth", "Here is the request received - " + body);
+        receiveCredentialService.tokenizeReceivedCredential(body);
         return SimpleMessageResponse.setResponseMessage("Received");
     }
 

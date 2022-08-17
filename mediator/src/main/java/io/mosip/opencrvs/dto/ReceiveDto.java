@@ -7,7 +7,7 @@ public class ReceiveDto {
 	String rid;
 	String identityJson;
 	String proofOfIdentity;
-	String opencrvsId;
+	String opencrvsBRN;
 //	String proofOfAddress;
 //	String proofOfRelationship;
 //	String proofOfDateOfBirth;

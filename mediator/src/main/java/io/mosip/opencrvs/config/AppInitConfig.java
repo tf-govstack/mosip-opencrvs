@@ -53,7 +53,7 @@ public class AppInitConfig{
 			LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Unsubscribe Successful");
 		}
 		catch(Exception e){
-			LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Error while unsubscribing " + ExceptionUtils.getStackTrace(e));
+			LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Error while unsubscribing ", e);
 		}
 	}
 }

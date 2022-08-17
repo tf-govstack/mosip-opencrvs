@@ -7,7 +7,13 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.kernel.core.exception.ExceptionUtils;
+import io.mosip.kernel.core.util.CryptoUtil;
+import io.mosip.opencrvs.dto.DecryptedWebsubCredential;
+import io.mosip.opencrvs.dto.WebsubRequest;
 import org.joda.time.DateTime;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -54,6 +60,9 @@ public class RestUtil {
 
     @Autowired
     private RestTokenUtil restTokenUtil;
+
+    @Autowired
+    private OpencrvsCryptoUtil opencrvsCryptoUtil;
 
     @Autowired
     private RestTemplate selfTokenRestTemplate;
@@ -131,7 +140,7 @@ public class RestUtil {
         try {
             websubSubscribe();
         } catch (Exception e) {
-            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "websubSubscribe", "Error in init websub Subscriptions: "+ExceptionUtils.getStackTrace(e));
+            LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "websubSubscribe", "Error in init websub Subscriptions: ", e);
         }
     }
 
@@ -155,7 +164,7 @@ public class RestUtil {
             HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(request, requestHeaders);
             String res = new RestTemplate().postForObject(mosipWebSubHubUrl, requestEntity, String.class);
         } catch (Exception e) {
-            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "subscribe to websub", "Failed to subscribe. Exception: " + ExceptionUtils.getStackTrace(e));
+            LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "subscribe to websub", "Failed to subscribe. Exception: ", e);
             throw new BaseCheckedException(ErrorCode.SUBSCRIBE_FAILED_EXCEPTION_CODE, ErrorCode.SUBSCRIBE_FAILED_EXCEPTION_MESSAGE);
         }
     }
@@ -188,7 +197,7 @@ public class RestUtil {
                 "}" +
                 "," +
                 "{" +
-                    "\"label\":\"opencrvsId\"," +
+                    "\"label\":\"opencrvsBRN\"," +
                     "\"value\":\"" + opencrvsBirthId + "\"" +
                 "}" +
             "]");
@@ -250,34 +259,14 @@ public class RestUtil {
         return source;
     }
 
-    @Async
-    public void proxyPassReceivedCredential(String credentialData){
-        //get authtoken
-        String token = restTokenUtil.getOpencrvsAuthToken("subscribe to websub");
-        if(token==null || token.isEmpty()) return;
-
-        try{
-            HttpHeaders requestHeaders = new HttpHeaders();
-            requestHeaders.setContentType(MediaType.APPLICATION_JSON);
-            requestHeaders.add("Authorization","Bearer "+token);
-            HttpEntity<String> request = new HttpEntity<>(credentialData, requestHeaders);
-            String res = new RestTemplate().postForObject(opencrvsReceiveCredUrl,request,String.class);
-            LOGGER.info(LoggingConstants.SESSION,LoggingConstants.ID,"send credentials","Sent Credentials. response - "+res);
-        } catch (Exception e) {
-            LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"send credentials","Error sending Credentials: "+ExceptionUtils.getStackTrace(e));
-        }
-
-        publishStatusWebsub(credentialData);
-    }
-
-    public void publishStatusWebsub(String cred){
+    public void publishStatusWebsub(WebsubRequest cred, String status){
         //get authtoken
         String credStatusUpdateTopic = "CREDENTIAL_STATUS_UPDATE";
         String token = restTokenUtil.getPartnerAuthToken("Publish status to websub");
         if(token==null || token.isEmpty()) return;
 
         try{
-            String requestId = new JSONObject(cred).getJSONObject("event").getString("transactionId");
+            String requestId = cred.event.transactionId;
             String topic = partnerClientId + "/CREDENTIAL_ISSUED";
             String req =
                 "{" +
@@ -288,7 +277,7 @@ public class RestUtil {
                         "{" +
                             "\"id\":\"" + UUID.randomUUID() + "\"" + "," +
                             "\"requestId\":\"" + requestId + "\"" + "," +
-                            "\"status\":\"served\"" + "," +
+                            "\"status\":\"" + status + "\"" + "," +
                             "\"timestamp\":\"" + Timestamp.valueOf(DateUtils.getUTCCurrentDateTime()) + "\"" + "," +
                             "\"url\":null" +
                         "}" +
@@ -301,7 +290,7 @@ public class RestUtil {
             String res = new RestTemplate().postForObject(url,request,String.class);
             LOGGER.info(LoggingConstants.SESSION,LoggingConstants.ID,"publish status to websub","Published status. Response: "+res);
         } catch (Exception e) {
-            LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"publish status to websub","Error publishing status "+ExceptionUtils.getStackTrace(e));
+            LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,"publish status to websub","Error publishing status ", e);
         }
     }
 }

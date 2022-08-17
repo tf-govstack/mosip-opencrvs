@@ -59,12 +59,14 @@ public class ErrorCode{
   public static final String CRYPTO_INIT_PRIVATE_KEY_EXCEPTION_MESSAGE="Unable to initialize private key ";
   public static final String CRYPTO_DECRYPT_EXCEPTION_CODE="OPN-CRVS-022";
   public static final String CRYPTO_DECRYPT_EXCEPTION_MESSAGE="Unable to decrypt encrypted data ";
-  public static final String CRYPTO_READ_PUBLIC_KEY_EXCEPTION_CODE="OPN-CRVS-023";
+  public static final String CRYPTO_ENCRYPT_EXCEPTION_CODE="OPN-CRVS-023";
+  public static final String CRYPTO_ENCRYPT_EXCEPTION_MESSAGE="Unable to encrypt encrypted data ";
+  public static final String CRYPTO_READ_PUBLIC_KEY_EXCEPTION_CODE="OPN-CRVS-024";
   public static final String CRYPTO_READ_PUBLIC_KEY_EXCEPTION_MESSAGE="Error reading public key ";
-  public static final String CRYPTO_INIT_PUBLIC_KEY_EXCEPTION_CODE="OPN-CRVS-024";
+  public static final String CRYPTO_INIT_PUBLIC_KEY_EXCEPTION_CODE="OPN-CRVS-025";
   public static final String CRYPTO_INIT_PUBLIC_KEY_EXCEPTION_MESSAGE="Unable to initialize public key ";
-  public static final String CRYPTO_SIGN_VERIFY_EXCEPTION_CODE="OPN-CRVS-025";
+  public static final String CRYPTO_SIGN_VERIFY_EXCEPTION_CODE="OPN-CRVS-026";
   public static final String CRYPTO_SIGN_VERIFY_EXCEPTION_MESSAGE="Improper Signature / Unable to verify signed data ";
-  public static final String PRE_PROCESS_DATA_EXCEPTION_CODE="OPN-CRVS-026";
+  public static final String PRE_PROCESS_DATA_EXCEPTION_CODE="OPN-CRVS-027";
   public static final String PRE_PROCESS_DATA_EXCEPTION_MESSAGE="Error while preProcessing data";
 }

@@ -66,13 +66,13 @@ public class OpencrvsDataUtil {
                 throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
             }
         } catch(NullPointerException ne){
-            LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"ReceiveDto::build()", "Received null pointer exception", ne);
+            LOGGER.error(LoggingConstants.FORMATTER_PREFIX,LoggingConstants.SESSION,LoggingConstants.ID,"ReceiveDto::build()", "Received null pointer exception", ne);
             throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE, ne);
         }
 
         ReceiveDto returner = new ReceiveDto();
 
-        returner.setOpencrvsId(getOpencrvsIdFromPatientBody(patient));
+        returner.setOpencrvsBRN(getOpencrvsBRNFromPatientBody(patient));
 
         String fullName = getFullNameFromPatientBody(patient);
 
@@ -116,7 +116,7 @@ public class OpencrvsDataUtil {
         return returner;
     }
 
-    public String getOpencrvsIdFromPatientBody(DecryptedEventDto.Event.Context.Entry.Resource patient){
+    public String getOpencrvsBRNFromPatientBody(DecryptedEventDto.Event.Context.Entry.Resource patient){
         for(DecryptedEventDto.Event.Context.Entry.Resource.Identifier identifier : patient.identifier){
             if("BIRTH_REGISTRATION_NUMBER".equals(identifier.type)){
                 return identifier.value;
@@ -179,7 +179,7 @@ public class OpencrvsDataUtil {
             DecryptedEventDto.Event.Context.Entry.Resource.Name defaultName = patient.name.get(0);
             String givenName = String.join(".", defaultName.given).replaceAll("\\s","").replaceAll("\"","").toLowerCase();
             String familyName = String.join(".", defaultName.family).replaceAll("\\s","").replaceAll("\"","").toLowerCase();
-            return "\"" + givenName + "." + familyName + dummyEmailSuffix + "\"";
+            return "\"" + givenName + "." + familyName + dummyEmailSuffix.replaceAll("\"","") + "\"";
         } catch(NullPointerException ne){
             throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting email id from request ", ne);
         }

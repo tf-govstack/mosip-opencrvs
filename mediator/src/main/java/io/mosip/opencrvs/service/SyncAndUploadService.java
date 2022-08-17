@@ -112,7 +112,7 @@ public class SyncAndUploadService {
                 throw new BaseCheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE, je);
             }
         } catch (RestClientException e) {
-            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, registrationId, "Packet Upload Failed with exception: " + ExceptionUtils.getStackTrace(e));
+            LOGGER.error("{} - {} - {} - {}",LoggingConstants.SESSION, LoggingConstants.ID, registrationId, "Packet Upload Failed with exception: ", e);
             throw new BaseCheckedException(ErrorCode.SYNC_UPLOAD_EXCEPTION_CODE, ErrorCode.SYNC_UPLOAD_EXCEPTION_MESSAGE, e);
         }
     }

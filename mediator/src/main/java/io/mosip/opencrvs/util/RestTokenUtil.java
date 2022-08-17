@@ -3,17 +3,21 @@ package io.mosip.opencrvs.util;
 import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.exception.ExceptionUtils;
 import io.mosip.kernel.core.logger.spi.Logger;
+import io.mosip.opencrvs.constant.ApiName;
 import io.mosip.opencrvs.constant.LoggingConstants;
 import io.mosip.opencrvs.error.ErrorCode;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Base64;
 import java.util.List;
@@ -34,6 +38,8 @@ public class RestTokenUtil {
     private String partnerUsername;
     @Value("${mosip.opencrvs.partner.password}")
     private String partnerPassword;
+    @Value("${mosip.opencrvs.uin.token.partner}")
+    private String uinTokenPartnerId;
     @Value("${mosip.iam.token_endpoint}")
     private String iamTokenEndpoint;
     @Value("${opencrvs.client.id}")
@@ -44,6 +50,9 @@ public class RestTokenUtil {
     private String opencrvsClientShaSecret;
     @Value("${opencrvs.auth.url}")
     private String opencrvsAuthUrl;
+
+    @Autowired
+    private Environment env;
 
     private String getOIDCToken(String tokenEndpoint, String clientId, String clientSecret, String username, String password, String grantType) throws BaseCheckedException {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
@@ -99,7 +108,7 @@ public class RestTokenUtil {
         try{
             return getOIDCToken(iamTokenEndpoint,mosipClientId,mosipClientSecret);
         } catch (Exception e) {
-            LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,context,"Error getting mosip auth token "+ ExceptionUtils.getStackTrace(e));
+            LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,context,"Error getting mosip auth token ", e);
             return null;
         }
     }
@@ -108,21 +117,23 @@ public class RestTokenUtil {
         try {
             return getOIDCToken(iamTokenEndpoint,partnerClientId,partnerClientSecret,partnerUsername,partnerPassword);
         } catch (Exception e) {
-            LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,context,"Error getting partner auth token "+ ExceptionUtils.getStackTrace(e));
+            LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,context,"Error getting partner auth token ", e);
             return null;
         }
     }
 
     public String getOpencrvsAuthToken(String context){
+        if(opencrvsAuthUrl==null || opencrvsAuthUrl.isEmpty()) return "Authorization";
         try {
             return getOpencrvsAuthTokenInterface(opencrvsAuthUrl,opencrvsClientId,opencrvsClientSecret);
         } catch (Exception e) {
-            LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,context,"Error getting opencrvs auth token "+ ExceptionUtils.getStackTrace(e));
+            LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,context,"Error getting opencrvs auth token ", e);
             return null;
         }
     }
 
     public void validateToken(String validateEndpoint, String authToken, List<String> requiredRoleList) throws BaseCheckedException{
+        if(validateEndpoint==null || validateEndpoint.isEmpty()) return;
         HttpHeaders requestHeaders = new HttpHeaders();
         requestHeaders.add("Authorization","Bearer " + authToken);
         HttpEntity<String> request = new HttpEntity<>(requestHeaders);
@@ -142,6 +153,25 @@ public class RestTokenUtil {
             }
         } catch(JSONException e) {
             throw new BaseCheckedException(ErrorCode.ERROR_ROLE_AUTH_TOKEN_EXCEPTION_CODE,ErrorCode.ERROR_ROLE_AUTH_TOKEN_EXCEPTION_MESSAGE,e);
+        }
+    }
+
+    public String mosipUINPartnerToken(String uin) throws BaseCheckedException{
+        String mosipAuthToken = getMosipAuthToken("getting MOSIP UIN Partner Token");
+        if (mosipAuthToken==null || mosipAuthToken.isEmpty()){
+            throw new BaseCheckedException(ErrorCode.TOKEN_GENERATION_FAILED_CODE, ErrorCode.TOKEN_GENERATION_FAILED_MESSAGE);
+        }
+        String apiUrl = env.getProperty(ApiName.KEYMANAGER_TOKENID);
+        apiUrl = UriComponentsBuilder.fromHttpUrl(apiUrl).pathSegment(uin, uinTokenPartnerId).toUriString();
+        HttpHeaders requestHeaders = new HttpHeaders();
+        requestHeaders.add("Cookie","Authorization=" + mosipAuthToken);
+        HttpEntity<String> request = new HttpEntity<>(requestHeaders);
+        try {
+            String responseString = new RestTemplate().exchange(apiUrl, HttpMethod.GET, request, String.class).getBody();
+            JSONObject res = new JSONObject(responseString);
+            return res.getJSONObject("response").getString("tokenID");
+        } catch(RestClientException | JSONException e) {
+            throw new BaseCheckedException(ErrorCode.UNKNOWN_EXCEPTION_CODE, ErrorCode.UNKNOWN_EXCEPTION_MESSAGE, e);
         }
     }
 

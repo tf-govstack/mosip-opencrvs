@@ -22,7 +22,7 @@ if [ -z $MOSIP_OPENCRVS_PARTNER_CLIENT_SHA_SECRET ]; then read -p "Give a random
 if [ -z $MOSIP_OPENCRVS_PARTNER_USERNAME ]; then read -p "Give MOSIP OpenCRVS Partner Username : " MOSIP_OPENCRVS_PARTNER_USERNAME; fi
 if [ -z $MOSIP_OPENCRVS_PARTNER_PASS ]; then read -p "Give MOSIP OpenCRVS Partner Password : " MOSIP_OPENCRVS_PARTNER_PASS; fi
 
-if [ -z $MOSIP_PRIVATE_KEY_PATH ]; then read -p "Give MOSIP Private Key Path : " MOSIP_PRIVATE_KEY_PATH; fi
+if [ -z $MOSIP_PRIVATE_KEY_PATH ]; then read -p "Give MOSIP OpenCRVS Mediator Private Key Path : " MOSIP_PRIVATE_KEY_PATH; fi
 if [ -z $OPENCRVS_PUBLIC_KEY_PATH ]; then read -p "Give OpenCRVS Public Cert Path : " OPENCRVS_PUBLIC_KEY_PATH; fi
 
 echo Create $NS namespace

@@ -10,8 +10,8 @@ import java.util.List;
 @Data
 public class ErrorResponse extends SimpleMessageResponse{
     public static class Error{
-        String errorCode;
-        String errorMessage;
+        public String errorCode;
+        public String errorMessage;
         public Error(String code, String message){
             errorCode=code;
             errorMessage=message;

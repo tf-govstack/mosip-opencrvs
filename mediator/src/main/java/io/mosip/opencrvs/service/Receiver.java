@@ -8,6 +8,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.kernel.core.exception.ExceptionUtils;
 import io.mosip.opencrvs.dto.BaseEventRequest;
@@ -57,7 +58,7 @@ public class Receiver {
 	private String birthPacketProcessType;
 
 	@Value("${mosip.opencrvs.kafka.consumer.poll.interval.ms}")
-	private String pollIntervalMs;
+	private long pollIntervalMs;
 
 	@Value("${opencrvs.audit.app.name}")
 	private String auditAppName;
@@ -106,10 +107,15 @@ public class Receiver {
 	@Autowired
 	private RestTemplate selfTokenRestTemplate;
 
+	private ObjectMapper kafkaMessageToJavaMapper = null;
+
 	@Async
 	public void receive(){
 		while (true) {
-			ConsumerRecords<String, String> records = kafkaUtil.consumerPoll(Duration.ofMillis(Long.parseLong(pollIntervalMs)));
+			ConsumerRecords<String, String> records = kafkaUtil.consumerPoll(Duration.ofMillis(pollIntervalMs));
+			if (records.count()>1) {
+				LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID, "RECEIVER", "RECEIVED RECORDS. Number: " + records.count());
+			}
 			for (ConsumerRecord<String, String> record : records) {
 				try {
 					LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Received transaction");
@@ -117,10 +123,10 @@ public class Receiver {
 					LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+record.key(),"PreProcessResult : " + preProcessResult);
 					createAndUploadPacket(record.key(), preProcessResult);
 				} catch (BaseCheckedException e){
-					LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Error while processing transaction. Sending to reproduce" + ExceptionUtils.getStackTrace(e));
+					LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Error while processing transaction. Sending to reproduce", e);
 					producer.reproduce(record.key(),record.value());
 				} catch (Exception e){
-					LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Error while processing transaction. " + ExceptionUtils.getStackTrace(e));
+					LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Error while processing transaction. ", e);
 				}
 			}
 		}
@@ -140,12 +146,15 @@ public class Receiver {
 	}
 
 	public DecryptedEventDto preProcess(String key, String value) throws BaseCheckedException{
+		if(kafkaMessageToJavaMapper==null){
+			kafkaMessageToJavaMapper = new ObjectMapper();
+			kafkaMessageToJavaMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+		}
 		BaseEventRequest request;
-		ObjectMapper objectMapper = new ObjectMapper();
 		try{
-			request = objectMapper.readValue(value, BaseEventRequest.class);
+			request = kafkaMessageToJavaMapper.readValue(value, BaseEventRequest.class);
 		} catch(JsonProcessingException je) {
-			LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"kafka message value - json error - " + ExceptionUtils.getStackTrace(je));
+			LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"kafka message value - json error - ", je);
 			throw new BaseCheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE, je);
 		}
 
@@ -154,13 +163,13 @@ public class Receiver {
 			byte[] encryptedData = CryptoUtil.decodePlainBase64(request.getData());
 			decrypted = new String(opencrvsCryptoUtil.decrypt(encryptedData));
 		} catch(BaseCheckedException e) {
-			LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"Unable to decrypt " + ExceptionUtils.getStackTrace(e));
+			LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"Unable to decrypt ", e);
 			throw e;
 		}
 		try{
-			return objectMapper.readValue(decrypted, DecryptedEventDto.class);
+			return kafkaMessageToJavaMapper.readValue(decrypted, DecryptedEventDto.class);
 		} catch(JsonProcessingException je) {
-			LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"Decrypted String - json error - " + ExceptionUtils.getStackTrace(je));
+			LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"Decrypted String - json error", je);
 			throw new BaseCheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE, je);
 		}
 	}
@@ -180,7 +189,7 @@ public class Receiver {
 			request = opencrvsDataUtil.buildIdJson(requestBody);
 		}
 		catch(Exception e){
-			LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"build IdJson Request", ErrorCode.IDJSON_BUILD_EXCEPTION_MESSAGE + ExceptionUtils.getStackTrace(e));
+			LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,"build IdJson Request", ErrorCode.IDJSON_BUILD_EXCEPTION_MESSAGE, e);
 			throw new BaseUncheckedException(ErrorCode.IDJSON_BUILD_EXCEPTION_CODE,ErrorCode.IDJSON_BUILD_EXCEPTION_MESSAGE, e);
 		}
 
@@ -194,7 +203,7 @@ public class Receiver {
 			}
 		}
 		catch(Exception e){
-			LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"generate RID", ErrorCode.RID_GENERATE_EXCEPTION_MESSAGE + ExceptionUtils.getStackTrace(e));
+			LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,"generate RID", ErrorCode.RID_GENERATE_EXCEPTION_MESSAGE, e);
 			throw new BaseUncheckedException(ErrorCode.RID_GENERATE_EXCEPTION_CODE,ErrorCode.RID_GENERATE_EXCEPTION_MESSAGE, e);
 		}
 
@@ -241,7 +250,7 @@ public class Receiver {
 			LOGGER.debug(LoggingConstants.SESSION,LoggingConstants.ID,request.getRid(),"Received This schemaJson from API: " + packetDto.getSchemaJson());
 			packetDto.setFields(idMap);
 			packetDto.setDocuments(docsMap);
-			packetDto.setMetaInfo(restUtil.getMetadata(birthPacketProcessType, request.getRid(),centerId,machineId, request.getOpencrvsId()));
+			packetDto.setMetaInfo(restUtil.getMetadata(birthPacketProcessType, request.getRid(),centerId,machineId, request.getOpencrvsBRN()));
 			packetDto.setAudits(restUtil.generateAudit(packetDto.getId(),auditAppName,auditAppId));
 			packetDto.setOfflineMode(false);
 			packetDto.setRefId(centerId + "_" + machineId);
@@ -275,7 +284,7 @@ public class Receiver {
 
 			LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, packetDto.getId(), "Receiver::createPacket()::packet synced and uploaded");
 		} catch (Exception e) {
-			LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID, request.getRid(),"Encountered error while create packet" + ExceptionUtils.getStackTrace(e));
+			LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID, request.getRid(),"Encountered error while create packet", e);
 			if (e instanceof BaseCheckedException) {
 				throw (BaseCheckedException) e;
 			} else if (e instanceof BaseUncheckedException) {
