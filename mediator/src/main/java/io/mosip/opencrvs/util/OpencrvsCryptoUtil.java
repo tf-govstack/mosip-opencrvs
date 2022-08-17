@@ -52,12 +52,12 @@ public class OpencrvsCryptoUtil {
     private final int nonceLength = 96;
     private final int aadLength = 256;
 
-    @Value("${mosip.opencrvs.decrypt.privkey.path}")
+    @Value("${mosip.opencrvs.privkey.path}")
     private String mosipPrivKeyPath;
     private PrivateKey mosipPrivateKey;
     private Cipher decryptCipher;
 
-    @Value("${mosip.opencrvs.signverify.pubkey.path}")
+    @Value("${opencrvs.mosip.pubkey.path}")
     private String opencrvsPublicKeyPath;
     private PublicKey opencrvsPublicKey;
     private Cipher encryptCipher;
