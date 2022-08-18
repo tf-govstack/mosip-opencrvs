@@ -38,6 +38,9 @@ public class RestTokenUtil {
     private String partnerUsername;
     @Value("${mosip.opencrvs.partner.password}")
     private String partnerPassword;
+
+    @Value("${mosip.opencrvs.uin.token.intermediary.partner:mpartner-default-auth}")
+    private String uinTokenIntermediaryPartnerId;
     @Value("${mosip.opencrvs.uin.token.partner}")
     private String uinTokenPartnerId;
     @Value("${mosip.iam.token_endpoint}")
@@ -162,10 +165,19 @@ public class RestTokenUtil {
             throw new BaseCheckedException(ErrorCode.TOKEN_GENERATION_FAILED_CODE, ErrorCode.TOKEN_GENERATION_FAILED_MESSAGE);
         }
         String apiUrl = env.getProperty(ApiName.KEYMANAGER_TOKENID);
-        apiUrl = UriComponentsBuilder.fromHttpUrl(apiUrl).pathSegment(uin, uinTokenPartnerId).toUriString();
+        apiUrl = UriComponentsBuilder.fromHttpUrl(apiUrl).pathSegment(uin, uinTokenIntermediaryPartnerId).toUriString();
         HttpHeaders requestHeaders = new HttpHeaders();
         requestHeaders.add("Cookie","Authorization=" + mosipAuthToken);
         HttpEntity<String> request = new HttpEntity<>(requestHeaders);
+        String intermediaryUINToken;
+        try {
+            String responseString = new RestTemplate().exchange(apiUrl, HttpMethod.GET, request, String.class).getBody();
+            JSONObject res = new JSONObject(responseString);
+            intermediaryUINToken = res.getJSONObject("response").getString("tokenID");
+        } catch(RestClientException | JSONException e) {
+            throw new BaseCheckedException(ErrorCode.UNKNOWN_EXCEPTION_CODE, ErrorCode.UNKNOWN_EXCEPTION_MESSAGE, e);
+        }
+        apiUrl = UriComponentsBuilder.fromHttpUrl(apiUrl).pathSegment(intermediaryUINToken, uinTokenPartnerId).toUriString();
         try {
             String responseString = new RestTemplate().exchange(apiUrl, HttpMethod.GET, request, String.class).getBody();
             JSONObject res = new JSONObject(responseString);
