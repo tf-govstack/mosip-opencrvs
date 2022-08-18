@@ -11,7 +11,9 @@ import io.mosip.opencrvs.error.ErrorCode;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -46,6 +48,9 @@ public class OpencrvsDataUtil {
     private String dummyPhone;
     @Value("${opencrvs.data.dummy.emailSuffix}")
     private String dummyEmailSuffix;
+
+    @Autowired
+    private Environment env;
 
     public ReceiveDto buildIdJson(DecryptedEventDto opencrvsRequestBody){
         List<DecryptedEventDto.Event.Context.Entry> contextEntries;
@@ -175,6 +180,10 @@ public class OpencrvsDataUtil {
 
     public String getEmailFromPatientBody(DecryptedEventDto.Event.Context.Entry.Resource patient){
         //dummy implementation
+        String staticEmail = env.getProperty("opencrvs.data.dummy.static.email");
+        if(staticEmail!=null && !staticEmail.isEmpty()){
+            return "\"" + staticEmail + "\"";
+        }
         try{
             DecryptedEventDto.Event.Context.Entry.Resource.Name defaultName = patient.name.get(0);
             String givenName = String.join(".", defaultName.given).replaceAll("\\s","").replaceAll("\"","").toLowerCase();

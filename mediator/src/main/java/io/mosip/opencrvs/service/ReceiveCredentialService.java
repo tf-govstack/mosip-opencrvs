@@ -25,7 +25,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Service
 public class ReceiveCredentialService {
-    private static final Logger LOGGER = LogUtil.getLogger(Receiver.class);
+    private static final Logger LOGGER = LogUtil.getLogger(ReceiveCredentialService.class);
 
     @Value("${mosip.opencrvs.partner.client.id}")
     private String partnerClientId;

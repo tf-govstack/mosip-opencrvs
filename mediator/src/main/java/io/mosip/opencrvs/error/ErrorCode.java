@@ -67,6 +67,16 @@ public class ErrorCode{
   public static final String CRYPTO_INIT_PUBLIC_KEY_EXCEPTION_MESSAGE="Unable to initialize public key ";
   public static final String CRYPTO_SIGN_VERIFY_EXCEPTION_CODE="OPN-CRVS-026";
   public static final String CRYPTO_SIGN_VERIFY_EXCEPTION_MESSAGE="Improper Signature / Unable to verify signed data ";
+
   public static final String PRE_PROCESS_DATA_EXCEPTION_CODE="OPN-CRVS-027";
   public static final String PRE_PROCESS_DATA_EXCEPTION_MESSAGE="Error while preProcessing data";
+
+  public static final String UIN_NOT_VALID_IN_DEATH_EVENT_CODE = "OPN-CRVS-028";
+  public static final String UIN_NOT_VALID_IN_DEATH_EVENT_MESSAGE = "Invalid UIN. Or UIN not found in db";
+
+  public static final String MISSING_UIN_IN_DEATH_EVENT_CODE = "OPN-CRVS-029";
+  public static final String MISSING_UIN_IN_DEATH_EVENT_MESSAGE = "Couldnot get UIN/VID from the death event";
+
+  public static final String UIN_DEACTIVATE_ERROR_DEATH_EVENT_CODE = "OPN-CRVS-030";
+  public static final String UIN_DEACTIVATE_ERROR_DEATH_EVENT_MESSAGE = "Error Deactivating UIN on Death Event";
 }

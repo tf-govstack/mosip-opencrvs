@@ -8,6 +8,7 @@ import io.mosip.opencrvs.dto.BaseEventRequest;
 import io.mosip.opencrvs.dto.ErrorResponse;
 import io.mosip.opencrvs.dto.SimpleMessageResponse;
 import io.mosip.opencrvs.dto.WebsubRequest;
+import io.mosip.opencrvs.service.DeathEventHandlerService;
 import io.mosip.opencrvs.service.ReceiveCredentialService;
 import io.mosip.opencrvs.service.Receiver;
 import io.mosip.opencrvs.util.OpencrvsCryptoUtil;
@@ -41,6 +42,9 @@ public class WebhooksRestController {
 
     @Autowired
     private Receiver receiver;
+
+    @Autowired
+    private DeathEventHandlerService deathEventService;
 
     @Autowired
     private ReceiveCredentialService receiveCredentialService;
@@ -120,14 +124,15 @@ public class WebhooksRestController {
     }
 
     @PostMapping(value = "/death", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public SimpleMessageResponse postDeath(@CookieValue("Authorization") String authToken, @RequestBody String body) throws BaseCheckedException {
+    public SimpleMessageResponse postDeath(@CookieValue("Authorization") String authToken, @RequestBody BaseEventRequest body) throws BaseCheckedException {
         LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID, "RestController", "POST /death; data: " + body);
 
         restTokenUtil.validateToken(env.getProperty("mosip.iam.validate_endpoint"), authToken, null);
 
-        //work this out
+        String message = deathEventService.handleEvent(body);
 
-        LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "deactivateUIN","UIN Deactivated");
-        return SimpleMessageResponse.setResponseMessage("Received");
+        LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "DeathEvent","Message - " + message);
+        LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "DeathEvent","UIN Deactivated");
+        return SimpleMessageResponse.setResponseMessage(message);
     }
 }

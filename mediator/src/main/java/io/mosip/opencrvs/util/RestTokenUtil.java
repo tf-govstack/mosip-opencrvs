@@ -54,7 +54,7 @@ public class RestTokenUtil {
     @Autowired
     private Environment env;
 
-    private String getOIDCToken(String tokenEndpoint, String clientId, String clientSecret, String username, String password, String grantType) throws BaseCheckedException {
+    public String getOIDCToken(String tokenEndpoint, String clientId, String clientSecret, String username, String password, String grantType) throws BaseCheckedException {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.set("grant_type", grantType);
         formData.set("client_id", clientId);
@@ -73,15 +73,15 @@ public class RestTokenUtil {
         }
     }
 
-    private String getOIDCToken(String tokenEndpoint, String clientId, String clientSecret, String username, String password) throws BaseCheckedException{
+    public String getOIDCToken(String tokenEndpoint, String clientId, String clientSecret, String username, String password) throws BaseCheckedException{
         return getOIDCToken(tokenEndpoint,clientId,clientSecret,username,password,"password");
     }
 
-    private String getOIDCToken(String tokenEndpoint, String clientId, String username, String password) throws BaseCheckedException {
+    public String getOIDCToken(String tokenEndpoint, String clientId, String username, String password) throws BaseCheckedException {
         return getOIDCToken(tokenEndpoint,clientId,null,username,password);
     }
 
-    private String getOIDCToken(String tokenEndpoint, String clientId, String clientSecret) throws BaseCheckedException {
+    public String getOIDCToken(String tokenEndpoint, String clientId, String clientSecret) throws BaseCheckedException {
         return getOIDCToken(tokenEndpoint,clientId,clientSecret,null,null,"client_credentials");
     }
 
