@@ -46,6 +46,10 @@ public class DeathEventHandlerService {
     private String deathClientId;
     @Value("${mosip.opencrvs.death.client.secret}")
     private String deathClientSecret;
+    @Value("${opencrvs.center.id}")
+    private String centerId;
+    @Value("${opencrvs.machine.id}")
+    private String machineId;
 
 
     @Autowired
@@ -61,6 +65,13 @@ public class DeathEventHandlerService {
         DecryptedEventDto decryptedEventDto = receiver.preProcess(request.getId(), request.toString());
         String uin = getUINFromDecryptedEvent(decryptedEventDto);
         String token = restTokenUtil.getOIDCToken(iamTokenEndpoint, deathClientId, deathClientSecret);
+        String rid;
+        try{
+            rid = receiver.generateRegistrationId(centerId, machineId);
+        } catch(Exception e) {
+            LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,"DeathEvent:generateRid", "Couldnt generate rid", e);
+            throw new BaseCheckedException(ErrorCode.RID_GENERATE_EXCEPTION_CODE, ErrorCode.RID_GENERATE_EXCEPTION_MESSAGE);
+        }
 
         try{
             String dateTimePattern = env.getProperty(Constants.DATETIME_PATTERN);
@@ -69,7 +80,7 @@ public class DeathEventHandlerService {
                 "\"version\": \"v1.0\"," +
                 "\"requesttime\": \"" + DateUtils.getUTCCurrentDateTimeString(dateTimePattern) + "\"," +
                 "\"request\": {" +
-                    "\"registrationId\": \"\"," +
+                    "\"registrationId\": \"" + rid + "\"," +
                     "\"status\": \"" + deactivateStatus + "\"," +
                     "\"identity\": {" +
                         "\"IDSchemaVersion\": 0.0," +
@@ -91,7 +102,7 @@ public class DeathEventHandlerService {
             LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "DeathEvent::deactivateUIN", "Error Occured", rce);
             throw new BaseCheckedException(ErrorCode.UIN_DEACTIVATE_ERROR_DEATH_EVENT_CODE, ErrorCode.UIN_DEACTIVATE_ERROR_DEATH_EVENT_MESSAGE);
         }
-        return "";
+        return rid;
     }
 
     public String getUINFromDecryptedEvent(DecryptedEventDto decryptedEventDto) throws BaseCheckedException{
