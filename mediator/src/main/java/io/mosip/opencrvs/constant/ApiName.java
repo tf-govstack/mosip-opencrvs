@@ -7,4 +7,5 @@ public class ApiName{
   public static final String RIDGENERATION="RIDGENERATION";
   public static final String KEYMANAGER_TOKENID = "KEYMANAGER_TOKENID";
   public static final String IDREPO_IDENTITY = "IDREPO_IDENTITY";
+  public static final String IDREPO_VID = "IDREPO_VID";
 }

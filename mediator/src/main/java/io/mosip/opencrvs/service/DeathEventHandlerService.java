@@ -21,12 +21,14 @@ import org.springframework.core.env.Environment;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
@@ -50,7 +52,8 @@ public class DeathEventHandlerService {
     private String centerId;
     @Value("${opencrvs.machine.id}")
     private String machineId;
-
+    @Value("${mosip.kernel.uin.length}")
+    private int uinLength;
 
     @Autowired
     private Environment env;
@@ -63,8 +66,9 @@ public class DeathEventHandlerService {
 
     public String handleEvent(BaseEventRequest request) throws BaseCheckedException {
         DecryptedEventDto decryptedEventDto = receiver.preProcess(request.getId(), request.toString());
-        String uin = getUINFromDecryptedEvent(decryptedEventDto);
+        String uinVid = getUINFromDecryptedEvent(decryptedEventDto);
         String token = restTokenUtil.getOIDCToken(iamTokenEndpoint, deathClientId, deathClientSecret);
+        String uin = getUINFromUINVID(uinVid, token);
         String rid;
         try{
             rid = receiver.generateRegistrationId(centerId, machineId);
@@ -127,6 +131,27 @@ public class DeathEventHandlerService {
         } catch(NullPointerException ne){
             LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "DeathEvent::getUIN", "Error getting UIN from death event", ne);
             throw new BaseCheckedException(ErrorCode.MISSING_UIN_IN_DEATH_EVENT_CODE, ErrorCode.MISSING_UIN_IN_DEATH_EVENT_MESSAGE, ne);
+        }
+    }
+
+    public String getUINFromUINVID(String id, String token) throws BaseCheckedException{
+        if(id.length()==uinLength){
+            return id;
+        } else if(id.length() < uinLength) {
+            throw new BaseCheckedException(ErrorCode.UIN_NOT_VALID_IN_DEATH_EVENT_CODE, ErrorCode.UIN_NOT_VALID_IN_DEATH_EVENT_MESSAGE);
+        }
+        try{
+            HttpHeaders headers = new HttpHeaders();
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("Cookie", "Authorization="+token);
+            HttpEntity<String> requestIdentity = new HttpEntity<>(headers);
+            String apiUrl = UriComponentsBuilder.fromHttpUrl(env.getProperty(ApiName.IDREPO_VID)).pathSegment(id).toUriString();
+            String response = new RestTemplate().exchange(apiUrl, HttpMethod.GET, requestIdentity, String.class).getBody();
+            return new JSONObject(response).getJSONObject("response").getString("UIN");
+        } catch(Exception e) {
+            LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "DeathEvent::getUIN", "Error getting UIN from VID", e);
+            throw new BaseCheckedException(ErrorCode.UIN_NOT_VALID_IN_DEATH_EVENT_CODE, ErrorCode.UIN_NOT_VALID_IN_DEATH_EVENT_MESSAGE);
         }
     }
 }

@@ -164,8 +164,7 @@ public class RestTokenUtil {
         if (mosipAuthToken==null || mosipAuthToken.isEmpty()){
             throw new BaseCheckedException(ErrorCode.TOKEN_GENERATION_FAILED_CODE, ErrorCode.TOKEN_GENERATION_FAILED_MESSAGE);
         }
-        String apiUrl = env.getProperty(ApiName.KEYMANAGER_TOKENID);
-        apiUrl = UriComponentsBuilder.fromHttpUrl(apiUrl).pathSegment(uin, uinTokenIntermediaryPartnerId).toUriString();
+        String apiUrl = UriComponentsBuilder.fromHttpUrl(env.getProperty(ApiName.KEYMANAGER_TOKENID)).pathSegment(uin, uinTokenIntermediaryPartnerId).toUriString();
         HttpHeaders requestHeaders = new HttpHeaders();
         requestHeaders.add("Cookie","Authorization=" + mosipAuthToken);
         HttpEntity<String> request = new HttpEntity<>(requestHeaders);
@@ -177,7 +176,7 @@ public class RestTokenUtil {
         } catch(RestClientException | JSONException e) {
             throw new BaseCheckedException(ErrorCode.UNKNOWN_EXCEPTION_CODE, ErrorCode.UNKNOWN_EXCEPTION_MESSAGE, e);
         }
-        apiUrl = UriComponentsBuilder.fromHttpUrl(apiUrl).pathSegment(intermediaryUINToken, uinTokenPartnerId).toUriString();
+        apiUrl = UriComponentsBuilder.fromHttpUrl(env.getProperty(ApiName.KEYMANAGER_TOKENID)).pathSegment(intermediaryUINToken, uinTokenPartnerId).toUriString();
         try {
             String responseString = new RestTemplate().exchange(apiUrl, HttpMethod.GET, request, String.class).getBody();
             JSONObject res = new JSONObject(responseString);
