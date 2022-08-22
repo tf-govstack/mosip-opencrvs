@@ -111,11 +111,11 @@ public class RestUtil {
         try {
             response = selfTokenRestTemplate.getForObject(apiNameMidSchemaUrl + "?schemaVersion=" + version.toString(), String.class);
         } catch (RestClientException e) {
-            throw new BaseCheckedException(ErrorCode.API_RESOURCE_UNAVAILABLE_CODE, ErrorCode.API_RESOURCE_UNAVAILABLE_2_MESSAGE, e);
+            throw ErrorCode.API_RESOURCE_UNAVAILABLE_2.throwChecked(e);
         }
         LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID, "RestUtil.getIdschema", "Obtained this reponse from server for getting IdSchema " + response);
         if (response == null)
-            throw new BaseCheckedException(ErrorCode.API_RESOURCE_UNAVAILABLE_CODE, ErrorCode.API_RESOURCE_UNAVAILABLE_2_MESSAGE + version);
+            throw ErrorCode.API_RESOURCE_UNAVAILABLE_2.throwChecked(version.toString(), null);
 
         String responseString;
         try {
@@ -123,8 +123,8 @@ public class RestUtil {
             JSONObject respObj = jsonObject.getJSONObject("response");
             responseString = respObj != null ? respObj.getString("schemaJson") : null;
         } catch (JSONException je) {
-            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "RestUtil.getIdschema", ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
-            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
+            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "RestUtil.getIdschema", ErrorCode.JSON_PROCESSING_EXCEPTION.getErrorMessage());
+            throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwUnchecked(je);
         }
 
         idschemaCache.putIfAbsent(version, responseString);
@@ -147,7 +147,7 @@ public class RestUtil {
     public void websubSubscribe() throws BaseCheckedException {
         //get authtoken
         String token = restTokenUtil.getPartnerAuthToken("subscribe to websub");
-        if(token==null || token.isEmpty()) throw new BaseCheckedException(ErrorCode.AUTH_TOKEN_EXCEPTION_CODE, ErrorCode.AUTH_TOKEN_EXCEPTION_MESSAGE);
+        if(token==null || token.isEmpty()) throw ErrorCode.AUTH_TOKEN_EXCEPTION.throwChecked();
 
         LOGGER.debug(LoggingConstants.SESSION,LoggingConstants.ID,"websubSubscribe","Here partner Auth token: "+token);
 
@@ -165,7 +165,7 @@ public class RestUtil {
             String res = new RestTemplate().postForObject(mosipWebSubHubUrl, requestEntity, String.class);
         } catch (Exception e) {
             LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "subscribe to websub", "Failed to subscribe. Exception: ", e);
-            throw new BaseCheckedException(ErrorCode.SUBSCRIBE_FAILED_EXCEPTION_CODE, ErrorCode.SUBSCRIBE_FAILED_EXCEPTION_MESSAGE);
+            throw ErrorCode.SUBSCRIBE_FAILED_EXCEPTION.throwChecked(e);
         }
     }
 

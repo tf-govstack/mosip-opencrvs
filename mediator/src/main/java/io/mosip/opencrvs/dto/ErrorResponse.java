@@ -29,7 +29,7 @@ public class ErrorResponse extends SimpleMessageResponse{
         ErrorResponse errorResponse = new ErrorResponse();
         errorResponse.errors = new ArrayList<>();
         for(BaseCheckedException bce : exceptions){
-            errorResponse.errors.add(new Error(bce.getErrorCode(),bce.getMessage()));
+            errorResponse.errors.add(new Error(bce.getErrorCode(),bce.getErrorText()));
         }
         return errorResponse;
     }

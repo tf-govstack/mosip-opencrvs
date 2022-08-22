@@ -29,12 +29,13 @@ This document describe deployment of `mosip-side-mediator` and `registration-pro
   - Change _Access Type_ to `confidential`.
   - Enable _Standard Flow Enabled_.
   - Enable _Direct Access Grants Enabled_.
+  - Enable _Service Accounts Enabled_.
   - Disable rest of all properties.
   - Change _Valid Redirect URIs_ to `*`.
+- Give the following roles to this client, under _Service Account Roles_ section:
+  - `SUBSCRIBE_CREDENTIAL_ISSUED_INDIVIDUAL`
+  - `PUBLISH_CREDENTIAL_STATUS_UPDATE_GENERAL`
 - Apart from creating the partner keycloak client, create a new user with the same username as the partner name (that was previously given), with any password.
-  - Give these two roles to this user: 
-    - `SUBSCRIBE_CREDENTIAL_ISSUED_INDIVIDUAL`
-    - `PUBLISH_CREDENTIAL_STATUS_UPDATE_GENERAL`
 - Get certificate from OpenCRVS.
 - Run the following to install the mediator and components (The script will prompt for inputs):
     ```sh
@@ -50,8 +51,6 @@ This document describe deployment of `mosip-side-mediator` and `registration-pro
     export MOSIP_OPENCRVS_PARTNER_CLIENT_ID=
     export MOSIP_OPENCRVS_PARTNER_CLIENT_SECRET=
     export MOSIP_OPENCRVS_PARTNER_CLIENT_SHA_SECRET=
-    export MOSIP_OPENCRVS_PARTNER_USERNAME=
-    export MOSIP_OPENCRVS_PARTNER_PASSWORD=
     export MOSIP_PRIVATE_KEY_PATH=
     export OPENCRVS_PUBLIC_KEY_PATH=
     ./install.sh <cluster-kubeconfig-file>

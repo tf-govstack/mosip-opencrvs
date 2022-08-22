@@ -48,10 +48,6 @@ public class DeathEventHandlerService {
     private String deathClientId;
     @Value("${mosip.opencrvs.death.client.secret}")
     private String deathClientSecret;
-    @Value("${opencrvs.center.id}")
-    private String centerId;
-    @Value("${opencrvs.machine.id}")
-    private String machineId;
     @Value("${mosip.kernel.uin.length}")
     private int uinLength;
 
@@ -71,10 +67,10 @@ public class DeathEventHandlerService {
         String uin = getUINFromUINVID(uinVid, token);
         String rid;
         try{
-            rid = receiver.generateRegistrationId(centerId, machineId);
+            rid = receiver.generateDefaultRegistrationId();
         } catch(Exception e) {
             LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,"DeathEvent:generateRid", "Couldnt generate rid", e);
-            throw new BaseCheckedException(ErrorCode.RID_GENERATE_EXCEPTION_CODE, ErrorCode.RID_GENERATE_EXCEPTION_MESSAGE);
+            throw ErrorCode.RID_GENERATE_EXCEPTION.throwChecked(e);
         }
 
         try{
@@ -104,7 +100,7 @@ public class DeathEventHandlerService {
             // handle proper errors from response here
         } catch (RestClientException rce) {
             LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "DeathEvent::deactivateUIN", "Error Occured", rce);
-            throw new BaseCheckedException(ErrorCode.UIN_DEACTIVATE_ERROR_DEATH_EVENT_CODE, ErrorCode.UIN_DEACTIVATE_ERROR_DEATH_EVENT_MESSAGE);
+            throw ErrorCode.UIN_DEACTIVATE_ERROR_DEATH_EVENT.throwChecked(rce);
         }
         return rid;
     }
@@ -120,17 +116,17 @@ public class DeathEventHandlerService {
                 }
             }
             if (patient == null){
-                throw new BaseCheckedException(ErrorCode.MISSING_UIN_IN_DEATH_EVENT_CODE, ErrorCode.MISSING_UIN_IN_DEATH_EVENT_MESSAGE);
+                throw ErrorCode.MISSING_UIN_IN_DEATH_EVENT.throwChecked();
             }
             for(DecryptedEventDto.Event.Context.Entry.Resource.Identifier identifier: patient.identifier){
                 if("NATIONAL_ID".equals(identifier.type)){
                     return identifier.value;
                 }
             }
-            throw new BaseCheckedException(ErrorCode.MISSING_UIN_IN_DEATH_EVENT_CODE, ErrorCode.MISSING_UIN_IN_DEATH_EVENT_MESSAGE);
+            throw ErrorCode.MISSING_UIN_IN_DEATH_EVENT.throwChecked();
         } catch(NullPointerException ne){
             LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "DeathEvent::getUIN", "Error getting UIN from death event", ne);
-            throw new BaseCheckedException(ErrorCode.MISSING_UIN_IN_DEATH_EVENT_CODE, ErrorCode.MISSING_UIN_IN_DEATH_EVENT_MESSAGE, ne);
+            throw ErrorCode.MISSING_UIN_IN_DEATH_EVENT.throwChecked(ne);
         }
     }
 
@@ -138,7 +134,7 @@ public class DeathEventHandlerService {
         if(id.length()==uinLength){
             return id;
         } else if(id.length() < uinLength) {
-            throw new BaseCheckedException(ErrorCode.UIN_NOT_VALID_IN_DEATH_EVENT_CODE, ErrorCode.UIN_NOT_VALID_IN_DEATH_EVENT_MESSAGE);
+            throw ErrorCode.UIN_NOT_VALID_IN_DEATH_EVENT.throwChecked();
         }
         try{
             HttpHeaders headers = new HttpHeaders();
@@ -151,7 +147,7 @@ public class DeathEventHandlerService {
             return new JSONObject(response).getJSONObject("response").getString("UIN");
         } catch(Exception e) {
             LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "DeathEvent::getUIN", "Error getting UIN from VID", e);
-            throw new BaseCheckedException(ErrorCode.UIN_NOT_VALID_IN_DEATH_EVENT_CODE, ErrorCode.UIN_NOT_VALID_IN_DEATH_EVENT_MESSAGE);
+            throw ErrorCode.UIN_NOT_VALID_IN_DEATH_EVENT.throwChecked(e);
         }
     }
 }

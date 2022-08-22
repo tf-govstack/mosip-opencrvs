@@ -72,7 +72,7 @@ public class OpencrvsCryptoUtil {
             PEMParser parser = new PEMParser(new FileReader(FileUtils.getFile(mosipPrivKeyPath)));
             mosipPrivateKey = new JcaPEMKeyConverter().getPrivateKey((PrivateKeyInfo) parser.readObject());
         } catch(Exception e) {
-            throw new BaseUncheckedException(ErrorCode.CRYPTO_READ_PRIVATE_KEY_EXCEPTION_CODE,ErrorCode.CRYPTO_READ_PRIVATE_KEY_EXCEPTION_MESSAGE,e);
+            throw ErrorCode.CRYPTO_READ_PRIVATE_KEY_EXCEPTION.throwUnchecked(e);
         }
 
         try {
@@ -83,14 +83,14 @@ public class OpencrvsCryptoUtil {
             signer = Signature.getInstance(signAlgoName);
             signer.initSign(mosipPrivateKey);
         } catch (Exception e){
-            throw new BaseUncheckedException(ErrorCode.CRYPTO_INIT_PRIVATE_KEY_EXCEPTION_CODE,ErrorCode.CRYPTO_INIT_PRIVATE_KEY_EXCEPTION_MESSAGE,e);
+            throw ErrorCode.CRYPTO_INIT_PRIVATE_KEY_EXCEPTION.throwUnchecked(e);
         }
 
         try{
             PEMParser parser = new PEMParser(new FileReader(FileUtils.getFile(opencrvsPublicKeyPath)));
             opencrvsPublicKey = new JcaPEMKeyConverter().getPublicKey(((X509CertificateHolder)parser.readObject()).getSubjectPublicKeyInfo());
         } catch(Exception e) {
-            throw new BaseUncheckedException(ErrorCode.CRYPTO_READ_PUBLIC_KEY_EXCEPTION_CODE,ErrorCode.CRYPTO_READ_PUBLIC_KEY_EXCEPTION_MESSAGE,e);
+            throw ErrorCode.CRYPTO_READ_PUBLIC_KEY_EXCEPTION.throwUnchecked(e);
         }
 
         try {
@@ -104,7 +104,7 @@ public class OpencrvsCryptoUtil {
             verifier = Signature.getInstance(signAlgoName);
             verifier.initVerify(opencrvsPublicKey);
         } catch (Exception e){
-            throw new BaseUncheckedException(ErrorCode.CRYPTO_INIT_PUBLIC_KEY_EXCEPTION_CODE,ErrorCode.CRYPTO_INIT_PUBLIC_KEY_EXCEPTION_MESSAGE,e);
+            throw ErrorCode.CRYPTO_INIT_PUBLIC_KEY_EXCEPTION.throwUnchecked(e);
         }
     }
 
@@ -114,12 +114,12 @@ public class OpencrvsCryptoUtil {
             return verifier.verify(signature);
         }
         catch (Exception e){
-            throw new BaseCheckedException(ErrorCode.CRYPTO_SIGN_VERIFY_EXCEPTION_CODE,ErrorCode.CRYPTO_SIGN_VERIFY_EXCEPTION_MESSAGE,e);
+            throw ErrorCode.CRYPTO_SIGN_VERIFY_EXCEPTION.throwChecked(e);
         }
     }
     public void verifyThrowException(byte[] data, byte[] signature) throws BaseCheckedException{
         if(!this.verify(data, signature)){
-            throw new BaseCheckedException(ErrorCode.CRYPTO_SIGN_VERIFY_EXCEPTION_CODE,ErrorCode.CRYPTO_SIGN_VERIFY_EXCEPTION_MESSAGE);
+            throw ErrorCode.CRYPTO_SIGN_VERIFY_EXCEPTION.throwChecked();
         }
     }
 
@@ -128,7 +128,7 @@ public class OpencrvsCryptoUtil {
             return decryptCipher.doFinal(encryptedData);
         }
         catch (Exception e){
-            throw new BaseCheckedException(ErrorCode.CRYPTO_DECRYPT_EXCEPTION_CODE,ErrorCode.CRYPTO_DECRYPT_EXCEPTION_MESSAGE,e);
+            throw ErrorCode.CRYPTO_DECRYPT_EXCEPTION.throwChecked(e);
         }
     }
 
@@ -143,7 +143,7 @@ public class OpencrvsCryptoUtil {
             return symmetricDecryptCipher.doFinal(encryptedData);
         }
         catch (Exception e){
-            throw new BaseCheckedException(ErrorCode.CRYPTO_DECRYPT_EXCEPTION_CODE,ErrorCode.CRYPTO_DECRYPT_EXCEPTION_MESSAGE,e);
+            throw ErrorCode.CRYPTO_DECRYPT_EXCEPTION.throwChecked(e);
         }
     }
 
@@ -173,7 +173,7 @@ public class OpencrvsCryptoUtil {
         try{
             return encryptCipher.doFinal(data);
         } catch (Exception e){
-            throw new BaseCheckedException(ErrorCode.CRYPTO_ENCRYPT_EXCEPTION_CODE,ErrorCode.CRYPTO_ENCRYPT_EXCEPTION_MESSAGE,e);
+            throw ErrorCode.CRYPTO_ENCRYPT_EXCEPTION.throwChecked(e);
         }
     }
 
@@ -185,7 +185,7 @@ public class OpencrvsCryptoUtil {
             cipher.updateAAD(aad);
             return cipher.doFinal(input);
         } catch(Exception e) {
-            throw new BaseCheckedException(ErrorCode.CRYPTO_ENCRYPT_EXCEPTION_CODE,ErrorCode.CRYPTO_ENCRYPT_EXCEPTION_MESSAGE,e);
+            throw ErrorCode.CRYPTO_ENCRYPT_EXCEPTION.throwChecked(e);
         }
     }
 
@@ -195,7 +195,7 @@ public class OpencrvsCryptoUtil {
             signer.update(data);
             return signer.sign();
         } catch (Exception e){
-            throw new BaseCheckedException(ErrorCode.CRYPTO_SIGN_VERIFY_EXCEPTION_CODE,ErrorCode.CRYPTO_SIGN_VERIFY_EXCEPTION_MESSAGE,e);
+            throw ErrorCode.CRYPTO_SIGN_VERIFY_EXCEPTION.throwChecked(e);
         }
     }
 

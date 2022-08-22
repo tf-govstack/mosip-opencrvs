@@ -2,15 +2,11 @@ package io.mosip.opencrvs.util;
 
 import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.exception.BaseUncheckedException;
-import io.mosip.kernel.core.exception.ExceptionUtils;
 import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.opencrvs.constant.LoggingConstants;
 import io.mosip.opencrvs.dto.DecryptedEventDto;
 import io.mosip.opencrvs.dto.ReceiveDto;
 import io.mosip.opencrvs.error.ErrorCode;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -68,11 +64,11 @@ public class OpencrvsDataUtil {
             }
             if(patient == null || task == null){
                 LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"ReceiveDto::build()","Error processing patient/task. Got null patient/task");
-                throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
+                throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwUnchecked();
             }
         } catch(NullPointerException ne){
             LOGGER.error(LoggingConstants.FORMATTER_PREFIX,LoggingConstants.SESSION,LoggingConstants.ID,"ReceiveDto::build()", "Received null pointer exception", ne);
-            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE, ne);
+            throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwUnchecked(ne);
         }
 
         ReceiveDto returner = new ReceiveDto();
@@ -163,7 +159,7 @@ public class OpencrvsDataUtil {
             ret+="]";
             return ret;
         } catch(NullPointerException ne){
-            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting Full Name from request ", ne);
+            throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwUnchecked("while getting Full Name from request ", ne);
         }
     }
 
@@ -174,7 +170,7 @@ public class OpencrvsDataUtil {
                 "\"value\":\""+ patient.gender + "\"" +
             "}]";
         } catch(NullPointerException ne){
-            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting gender from request ", ne);
+            throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwUnchecked("while getting gender from request ", ne);
         }
     }
 
@@ -190,7 +186,7 @@ public class OpencrvsDataUtil {
             String familyName = String.join(".", defaultName.family).replaceAll("\\s","").replaceAll("\"","").toLowerCase();
             return "\"" + givenName + "." + familyName + dummyEmailSuffix.replaceAll("\"","") + "\"";
         } catch(NullPointerException ne){
-            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting email id from request ", ne);
+            throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwUnchecked("while getting email id from request ", ne);
         }
     }
 
@@ -198,7 +194,7 @@ public class OpencrvsDataUtil {
         try{
             return "\""+patient.birthDate.replaceAll("-","\\/")+"\"";
         } catch(NullPointerException ne){
-            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting DOB from request", ne);
+            throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwUnchecked("while getting DOB from request", ne);
         }
     }
 
@@ -211,7 +207,26 @@ public class OpencrvsDataUtil {
             }
             return null;
         } catch(NullPointerException ne){
-            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE+"while getting phone number from request ", ne);
+            throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwUnchecked("while getting phone number from request ", ne);
+        }
+    }
+
+    public String getRidFromBody(DecryptedEventDto decryptedEvent){
+        List<DecryptedEventDto.Event.Context.Entry> contextEntries;
+        try{
+            contextEntries = decryptedEvent.event.context.get(0).entry;
+            for(DecryptedEventDto.Event.Context.Entry entry: contextEntries) {
+                if ("Patient".equals(entry.resource.resourceType)) {
+                    for(DecryptedEventDto.Event.Context.Entry.Resource.Identifier identifier : entry.resource.identifier){
+                        if("MOSIP_RID".equals(identifier.type)){
+                            return identifier.value;
+                        }
+                    }
+                }
+            }
+            return null;
+        } catch(NullPointerException e) {
+            throw ErrorCode.PARSE_RID_FROM_REQUEST.throwUnchecked(e);
         }
     }
 }
