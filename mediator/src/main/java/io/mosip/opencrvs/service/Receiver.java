@@ -2,13 +2,17 @@ package io.mosip.opencrvs.service;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.kernel.core.exception.ExceptionUtils;
+import io.mosip.opencrvs.dto.BaseEventRequest;
+import io.mosip.opencrvs.dto.DecryptedEventDto;
 import io.mosip.opencrvs.util.*;
 import org.json.JSONObject;
 import org.json.JSONException;
@@ -22,7 +26,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.scheduling.annotation.Async;
 
@@ -54,6 +57,27 @@ public class Receiver {
 	@Value("${opencrvs.birth.process.type}")
 	private String birthPacketProcessType;
 
+	@Value("${mosip.opencrvs.kafka.consumer.poll.interval.ms}")
+	private long pollIntervalMs;
+
+	@Value("${opencrvs.audit.app.name}")
+	private String auditAppName;
+	@Value("${opencrvs.audit.app.id}")
+	private String auditAppId;
+
+	@Value("${object.store.base.location}")
+	private String objectStoreBaseLocation;
+	@Value("${packet.manager.account.name}")
+	private String packetManagerAccountName;
+
+	@Value("${opencrvs.center.id}")
+	private String centerId;
+	@Value("${opencrvs.machine.id}")
+	private String machineId;
+
+	@Autowired
+	Environment env;
+
 	private Map<Double, String> idschemaCache = new HashMap<>();
 
 	@Autowired
@@ -61,9 +85,6 @@ public class Receiver {
 
 	@Autowired
 	private PacketWriter packetWriter;
-
-	@Autowired
-	private Environment env;
 
 	@Autowired
 	private Producer producer;
@@ -86,24 +107,26 @@ public class Receiver {
 	@Autowired
 	private RestTemplate selfTokenRestTemplate;
 
+	private ObjectMapper kafkaMessageToJavaMapper = null;
+
 	@Async
 	public void receive(){
-		String pollIntervalMs = env.getProperty("mosip.opencrvs.kafka.consumer.poll.interval.ms");
 		while (true) {
-			ConsumerRecords<String, String> records = kafkaUtil.consumerPoll(Duration.ofMillis(Long.parseLong(pollIntervalMs)));
+			ConsumerRecords<String, String> records = kafkaUtil.consumerPoll(Duration.ofMillis(pollIntervalMs));
+			if (records.count()>1) {
+				LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID, "RECEIVER", "RECEIVED RECORDS. Number: " + records.count());
+			}
 			for (ConsumerRecord<String, String> record : records) {
 				try {
 					LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Received transaction");
-					String preProcessResult = preProcess(record.key(),record.value());
+					DecryptedEventDto preProcessResult = preProcess(record.key(),record.value());
 					LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+record.key(),"PreProcessResult : " + preProcessResult);
-					if(preProcessResult!=null && !preProcessResult.isEmpty()){
-						createAndUploadPacket(record.key(), preProcessResult);
-					}
+					createAndUploadPacket(record.key(), preProcessResult);
 				} catch (BaseCheckedException e){
-					LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Error while processing transaction. Sending to reproduce" + ExceptionUtils.getStackTrace(e));
+					LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Error while processing transaction. Sending to reproduce", e);
 					producer.reproduce(record.key(),record.value());
 				} catch (Exception e){
-					LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Error while processing transaction. " + ExceptionUtils.getStackTrace(e));
+					LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "txn_id - "+record.key(), "Error while processing transaction. ", e);
 				}
 			}
 		}
@@ -117,41 +140,45 @@ public class Receiver {
 			return responseJson.getJSONObject("response").getString("rid");
 		}
 		catch(JSONException je){
-			LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"generate RID", ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
-			throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
+			LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"generate RID", ErrorCode.JSON_PROCESSING_EXCEPTION.getErrorMessage());
+			throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwUnchecked(je);
 		}
 	}
 
-	public String preProcess(String key,String value) throws BaseCheckedException{
+	public String generateDefaultRegistrationId(){
+		return generateRegistrationId(centerId, machineId);
+	}
+
+	public DecryptedEventDto preProcess(String key, String value) throws BaseCheckedException{
+		if(kafkaMessageToJavaMapper==null){
+			kafkaMessageToJavaMapper = new ObjectMapper();
+			kafkaMessageToJavaMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+		}
+		BaseEventRequest request;
 		try{
-			JSONObject request = new JSONObject(value);
-			byte[] encryptedData = CryptoUtil.decodePlainBase64(request.getString("data"));
-			byte[] signature = CryptoUtil.decodePlainBase64(request.getString("signature"));
+			request = kafkaMessageToJavaMapper.readValue(value, BaseEventRequest.class);
+		} catch(JsonProcessingException je) {
+			LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"kafka message value - json error - ", je);
+			throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwChecked(je);
+		}
 
-			if(!opencrvsCryptoUtil.verify(encryptedData,signature)){
-				LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"Invalid Signature. This packet wont be processed.");
-				return null;
-			}
-
-			return new String(opencrvsCryptoUtil.decrypt(encryptedData));
-		} catch(Exception e) {
-			LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"Unable to verify sign or decrypt "+ExceptionUtils.getStackTrace(e));
-			if(e instanceof BaseCheckedException) throw (BaseCheckedException) e;
-			else {
-				throw new BaseCheckedException(ErrorCode.PRE_PROCESS_DATA_EXCEPTION_CODE,ErrorCode.PRE_PROCESS_DATA_EXCEPTION_MESSAGE,e);
-			}
+		String decrypted;
+		try{
+			byte[] encryptedData = CryptoUtil.decodePlainBase64(request.getData());
+			decrypted = new String(opencrvsCryptoUtil.decrypt(encryptedData));
+		} catch(BaseCheckedException e) {
+			LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"Unable to decrypt ", e);
+			throw e;
+		}
+		try{
+			return kafkaMessageToJavaMapper.readValue(decrypted, DecryptedEventDto.class);
+		} catch(JsonProcessingException je) {
+			LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID,"txn_id - "+key,"Decrypted String - json error", je);
+			throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwChecked(je);
 		}
 	}
 
-	public void createAndUploadPacket(String txnId, String requestBody) throws BaseCheckedException {
-		String auditAppName = env.getProperty(Constants.AUDIT_APP_NAME);
-		String auditAppId = env.getProperty(Constants.AUDIT_APP_ID);
-		String objectStoreBaseLocation = env.getProperty("object.store.base.location");
-		String packetManagerAccountName = env.getProperty("packet.manager.account.name");
-
-		String centerId = env.getProperty("opencrvs.center.id");
-		String machineId = env.getProperty("opencrvs.machine.id");
-
+	public void createAndUploadPacket(String txnId, DecryptedEventDto requestBody) throws BaseCheckedException {
 		if(!jdbcUtil.ifTxnExists(txnId)){
 			jdbcUtil.createBirthTransaction(txnId);
 		}
@@ -166,22 +193,23 @@ public class Receiver {
 			request = opencrvsDataUtil.buildIdJson(requestBody);
 		}
 		catch(Exception e){
-			LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"build IdJson Request", ErrorCode.IDJSON_BUILD_EXCEPTION_MESSAGE + ExceptionUtils.getStackTrace(e));
-			throw new BaseUncheckedException(ErrorCode.IDJSON_BUILD_EXCEPTION_CODE,ErrorCode.IDJSON_BUILD_EXCEPTION_MESSAGE, e);
+			LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,"build IdJson Request", ErrorCode.IDJSON_BUILD_EXCEPTION.getErrorMessage(), e);
+			throw ErrorCode.IDJSON_BUILD_EXCEPTION.throwUnchecked(e);
 		}
 
 		try{
 			String ridObtained = jdbcUtil.getBirthRid(txnId);
 			if (ridObtained==null || ridObtained.isEmpty()){
-				request.setRid(generateRegistrationId(centerId,machineId));
+				String receivedRid = opencrvsDataUtil.getRidFromBody(requestBody);
+				request.setRid(receivedRid==null ? generateDefaultRegistrationId() : receivedRid);
 				jdbcUtil.updateBirthRidAndStatus(txnId,request.getRid(),"RID Generated");
 			} else {
 				request.setRid(ridObtained);
 			}
 		}
 		catch(Exception e){
-			LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"generate RID", ErrorCode.RID_GENERATE_EXCEPTION_MESSAGE + ExceptionUtils.getStackTrace(e));
-			throw new BaseUncheckedException(ErrorCode.RID_GENERATE_EXCEPTION_CODE,ErrorCode.RID_GENERATE_EXCEPTION_MESSAGE, e);
+			LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,"generate RID", ErrorCode.RID_GENERATE_EXCEPTION.getErrorMessage(), e);
+			throw ErrorCode.RID_GENERATE_EXCEPTION.throwUnchecked(e);
 		}
 
 		// BaseUncheckedException only till this point
@@ -227,14 +255,14 @@ public class Receiver {
 			LOGGER.debug(LoggingConstants.SESSION,LoggingConstants.ID,request.getRid(),"Received This schemaJson from API: " + packetDto.getSchemaJson());
 			packetDto.setFields(idMap);
 			packetDto.setDocuments(docsMap);
-			packetDto.setMetaInfo(restUtil.getMetadata(birthPacketProcessType, request.getRid(),centerId,machineId, request.getOpencrvsId()));
+			packetDto.setMetaInfo(restUtil.getMetadata(birthPacketProcessType, request.getRid(),centerId,machineId, request.getOpencrvsBRN()));
 			packetDto.setAudits(restUtil.generateAudit(packetDto.getId(),auditAppName,auditAppId));
 			packetDto.setOfflineMode(false);
 			packetDto.setRefId(centerId + "_" + machineId);
 			List<PacketInfo> packetInfos = packetWriter.createPacket(packetDto);
 
 			if (CollectionUtils.isEmpty(packetInfos) || packetInfos.iterator().next().getId() == null)
-				throw new PacketCreatorException(ErrorCode.PACKET_CREATION_EXCEPTION_CODE, ErrorCode.PACKET_CREATION_EXCEPTION_MESSAGE);
+				throw new PacketCreatorException(ErrorCode.PACKET_CREATION_EXCEPTION.getErrorCode(), ErrorCode.PACKET_CREATION_EXCEPTION.getErrorMessage());
 
 			jdbcUtil.updateBirthStatus(txnId,"Packet Created");
 
@@ -261,13 +289,13 @@ public class Receiver {
 
 			LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, packetDto.getId(), "Receiver::createPacket()::packet synced and uploaded");
 		} catch (Exception e) {
-			LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID, request.getRid(),"Encountered error while create packet" + ExceptionUtils.getStackTrace(e));
+			LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID, request.getRid(),"Encountered error while create packet", e);
 			if (e instanceof BaseCheckedException) {
 				throw (BaseCheckedException) e;
 			} else if (e instanceof BaseUncheckedException) {
 				throw (BaseUncheckedException) e;
 			} else {
-				throw new BaseUncheckedException(ErrorCode.UNKNOWN_EXCEPTION_CODE, ErrorCode.UNKNOWN_EXCEPTION_MESSAGE, e);
+				throw ErrorCode.UNKNOWN_EXCEPTION.throwChecked(e);
 			}
 		} finally {
 			if (file != null && file.exists())
@@ -287,7 +315,7 @@ public class Receiver {
 			map.put(documentName, docDetailsDto);
 		}
 		catch(JSONException je){
-			throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE,ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE,je);
+			throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwUnchecked(je);
 		}
 	}
 }

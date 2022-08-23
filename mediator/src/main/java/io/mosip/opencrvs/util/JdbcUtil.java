@@ -47,7 +47,7 @@ public class JdbcUtil{
     try{
       jdbcTemplate.update("INSERT into "+birthTableName+" (txn_id, cr_by, cr_dtimes) VALUES (\'"+txnId+"\',\'"+crBy+"\',\'"+crDtimes+"\');");
     } catch(DataAccessException dae){
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Error inserting data into table " + ExceptionUtils.getStackTrace(dae));
+      LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Error inserting data into table ", dae);
     }
   }
 
@@ -57,7 +57,7 @@ public class JdbcUtil{
     try{
       jdbcTemplate.update("UPDATE "+birthTableName+" SET status=\'"+status+"\', upd_by=\'"+crBy+"\', upd_dtimes=\'"+updDtimes+"\' WHERE txn_id=\'"+txnId+"\';");
     } catch(DataAccessException dae){
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Error updating status in table " + ExceptionUtils.getStackTrace(dae));
+      LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Error updating status in table ", dae);
     }
   }
 
@@ -67,7 +67,7 @@ public class JdbcUtil{
     try{
       jdbcTemplate.update("UPDATE "+birthTableName+" SET status=\'"+status+"\', upd_by=\'"+crBy+"\', upd_dtimes=\'"+updDtimes+"\' WHERE rid=\'"+rid+"\';");
     } catch(DataAccessException dae){
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc rid - "+rid,"Error updating status in table " + ExceptionUtils.getStackTrace(dae));
+      LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,"jdbc rid - "+rid,"Error updating status in table ", dae);
     }
   }
 
@@ -77,7 +77,7 @@ public class JdbcUtil{
     try{
       jdbcTemplate.update("UPDATE "+birthTableName+" SET rid=\'"+rid+"\', status=\'"+status+"\', upd_by=\'"+crBy+"\', upd_dtimes=\'"+updDtimes+"\' WHERE txn_id=\'"+txnId+"\';");
     } catch(DataAccessException dae){
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Error updating rid and status in table " + ExceptionUtils.getStackTrace(dae));
+      LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,"jdbc txn_id - "+txnId,"Error updating rid and status in table ", dae);
     }
   }
 

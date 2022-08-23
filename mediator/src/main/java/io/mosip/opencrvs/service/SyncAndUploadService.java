@@ -74,15 +74,15 @@ public class SyncAndUploadService {
                 syncStatus = new JSONObject(packetSyncRes).getJSONArray("response").getJSONObject(0).getString("status");
             } catch (JSONException e) {
                 LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, registrationId, "Improper result of sync call. Output : " + packetSyncRes);
-                throw new BaseCheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE, e);
+                throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwChecked(e);
             }
         } catch (RuntimeException e) {
-            throw new BaseCheckedException(ErrorCode.API_RESOURCE_UNAVAILABLE_CODE, ErrorCode.API_RESOURCE_UNAVAILABLE_1_MESSAGE, e);
+            throw ErrorCode.API_RESOURCE_UNAVAILABLE.throwChecked(e);
         }
 
         if (!SUCCESS.equalsIgnoreCase(syncStatus)) {
             LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, registrationId, "Packet Sync Failed with status: " + syncStatus);
-            throw new BaseCheckedException(ErrorCode.SYNC_UPLOAD_EXCEPTION_CODE, ErrorCode.SYNC_UPLOAD_EXCEPTION_MESSAGE);
+            throw ErrorCode.SYNC_UPLOAD_EXCEPTION.throwChecked();
         }
 
         LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, registrationId, "Packet Generator sync successfull");
@@ -109,11 +109,11 @@ public class SyncAndUploadService {
                 return uploadStatus;
             } catch (JSONException je) {
                 LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, registrationId, "Packet Upload. Unable to parse upload response: " + packetReceiverRes);
-                throw new BaseCheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE, je);
+                throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwChecked(je);
             }
         } catch (RestClientException e) {
-            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, registrationId, "Packet Upload Failed with exception: " + ExceptionUtils.getStackTrace(e));
-            throw new BaseCheckedException(ErrorCode.SYNC_UPLOAD_EXCEPTION_CODE, ErrorCode.SYNC_UPLOAD_EXCEPTION_MESSAGE, e);
+            LOGGER.error("{} - {} - {} - {}",LoggingConstants.SESSION, LoggingConstants.ID, registrationId, "Packet Upload Failed with exception: ", e);
+            throw ErrorCode.SYNC_UPLOAD_EXCEPTION.throwChecked(e);
         }
     }
 
@@ -154,7 +154,7 @@ public class SyncAndUploadService {
         try {
             packetHash = HMACUtils2.digestAsPlainText(enryptedUinZipFile);
         } catch (NoSuchAlgorithmException nsa) {
-            throw new BaseUncheckedException(ErrorCode.UNKNOWN_EXCEPTION_CODE, ErrorCode.UNKNOWN_EXCEPTION_MESSAGE, nsa);
+            throw ErrorCode.UNKNOWN_EXCEPTION.throwUnchecked(nsa);
         }
 
         String syncRequestString =

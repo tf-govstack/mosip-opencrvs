@@ -222,12 +222,12 @@ public class OpencrvsStage extends MosipVerticleAPIManager {
 			}
 			else {
 				String vid = getVid(uin);
-				String opencrvsId = getOpencrvsId(regId, registrationStatusDto);
+				String opencrvsBRN = getOpencrvsBRN(regId, registrationStatusDto);
 
 				CredentialRequestDto credentialRequestDto = getCredentialRequestDto(vid);
-				if(opencrvsId!=null && !opencrvsId.isEmpty()){
+				if(opencrvsBRN!=null && !opencrvsBRN.isEmpty()){
 					Map<String, Object> additionalData = new HashMap<>();
-					additionalData.put("opencrvsId",opencrvsId);
+					additionalData.put("opencrvsBRN",opencrvsBRN);
 					credentialRequestDto.setAdditionalData(additionalData);
 				}
 				requestWrapper.setId(env.getProperty("mosip.registration.processor.credential.request.service.id"));
@@ -453,22 +453,22 @@ public class OpencrvsStage extends MosipVerticleAPIManager {
 		}
 	}
 
-	private String getOpencrvsId(String regId, InternalRegistrationStatusDto registrationStatusDto){
+	private String getOpencrvsBRN(String regId, InternalRegistrationStatusDto registrationStatusDto){
 		// giving stageName as PACKET_VALIDATOR but it doesnt matter, as long as packetmanager.provider.packetvalidator is not present in regproc properties
 		try{
 			Map<String,String> metaInfo = packetManagerService.getMetaInfo(regId, registrationStatusDto.getRegistrationType(), ProviderStageName.PACKET_VALIDATOR);
 			JSONArray metadata = new JSONArray(metaInfo.get("metaData"));
 			for(int i=0;i<metadata.length();i++){
-				if(metadata.getJSONObject(i).getString("label").equalsIgnoreCase("opencrvsId")){
-					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), regId, "OpencrvsId obtained.");
+				if(metadata.getJSONObject(i).getString("label").equalsIgnoreCase("opencrvsBRN")){
+					regProcLogger.info(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), regId, "OpencrvsBRN obtained.");
 					return metadata.getJSONObject(i).getString("value");
 				}
 			}
 		} catch (Exception e){
-			regProcLogger.warn(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), regId, "Failed opencrvsId obtained. Exception: " + ExceptionUtils.getStackTrace(e));
+			regProcLogger.warn(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), regId, "Failed opencrvsBRN obtained. Exception: " + ExceptionUtils.getStackTrace(e));
 			return null;
 		}
-		regProcLogger.warn(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), regId, "Failed opencrvsId obtained. Not Found.");
+		regProcLogger.warn(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), regId, "Failed opencrvsBRN obtained. Not Found.");
 		return null;
 	}
 }

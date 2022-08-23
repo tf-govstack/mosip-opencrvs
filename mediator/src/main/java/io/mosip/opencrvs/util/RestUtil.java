@@ -2,15 +2,19 @@ package io.mosip.opencrvs.util;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.net.URI;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.kernel.core.exception.ExceptionUtils;
+import io.mosip.kernel.core.util.CryptoUtil;
+import io.mosip.opencrvs.dto.DecryptedWebsubCredential;
+import io.mosip.opencrvs.dto.WebsubRequest;
 import org.joda.time.DateTime;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -21,7 +25,6 @@ import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.RestClientException;
@@ -29,8 +32,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.util.LinkedMultiValueMap;
 
 import io.mosip.kernel.core.util.DateUtils;
-import io.mosip.kernel.core.util.StringUtils;
-import io.mosip.kernel.core.util.TokenHandlerUtil;
 import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.exception.BaseUncheckedException;
 import io.mosip.kernel.core.logger.spi.Logger;
@@ -59,6 +60,9 @@ public class RestUtil {
 
     @Autowired
     private RestTokenUtil restTokenUtil;
+
+    @Autowired
+    private OpencrvsCryptoUtil opencrvsCryptoUtil;
 
     @Autowired
     private RestTemplate selfTokenRestTemplate;
@@ -107,11 +111,11 @@ public class RestUtil {
         try {
             response = selfTokenRestTemplate.getForObject(apiNameMidSchemaUrl + "?schemaVersion=" + version.toString(), String.class);
         } catch (RestClientException e) {
-            throw new BaseCheckedException(ErrorCode.API_RESOURCE_UNAVAILABLE_CODE, ErrorCode.API_RESOURCE_UNAVAILABLE_2_MESSAGE, e);
+            throw ErrorCode.API_RESOURCE_UNAVAILABLE_2.throwChecked(e);
         }
         LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID, "RestUtil.getIdschema", "Obtained this reponse from server for getting IdSchema " + response);
         if (response == null)
-            throw new BaseCheckedException(ErrorCode.API_RESOURCE_UNAVAILABLE_CODE, ErrorCode.API_RESOURCE_UNAVAILABLE_2_MESSAGE + version);
+            throw ErrorCode.API_RESOURCE_UNAVAILABLE_2.throwChecked(version.toString(), null);
 
         String responseString;
         try {
@@ -119,8 +123,8 @@ public class RestUtil {
             JSONObject respObj = jsonObject.getJSONObject("response");
             responseString = respObj != null ? respObj.getString("schemaJson") : null;
         } catch (JSONException je) {
-            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "RestUtil.getIdschema", ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
-            throw new BaseUncheckedException(ErrorCode.JSON_PROCESSING_EXCEPTION_CODE, ErrorCode.JSON_PROCESSING_EXCEPTION_MESSAGE);
+            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "RestUtil.getIdschema", ErrorCode.JSON_PROCESSING_EXCEPTION.getErrorMessage());
+            throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwUnchecked(je);
         }
 
         idschemaCache.putIfAbsent(version, responseString);
@@ -136,14 +140,14 @@ public class RestUtil {
         try {
             websubSubscribe();
         } catch (Exception e) {
-            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "websubSubscribe", "Error in init websub Subscriptions: "+ExceptionUtils.getStackTrace(e));
+            LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "websubSubscribe", "Error in init websub Subscriptions: ", e);
         }
     }
 
-    public void websubSubscribe() throws Exception {
+    public void websubSubscribe() throws BaseCheckedException {
         //get authtoken
         String token = restTokenUtil.getPartnerAuthToken("subscribe to websub");
-        if(token==null || token.isEmpty()) throw new Exception(ErrorCode.AUTH_TOKEN_EXCEPTION);
+        if(token==null || token.isEmpty()) throw ErrorCode.AUTH_TOKEN_EXCEPTION.throwChecked();
 
         LOGGER.debug(LoggingConstants.SESSION,LoggingConstants.ID,"websubSubscribe","Here partner Auth token: "+token);
 
@@ -160,8 +164,8 @@ public class RestUtil {
             HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(request, requestHeaders);
             String res = new RestTemplate().postForObject(mosipWebSubHubUrl, requestEntity, String.class);
         } catch (Exception e) {
-            LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "subscribe to websub", "Failed to subscribe. Exception: " + ExceptionUtils.getStackTrace(e));
-            throw new Exception(ErrorCode.SUBSCRIBE_FAILED_EXCEPTION);
+            LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "subscribe to websub", "Failed to subscribe. Exception: ", e);
+            throw ErrorCode.SUBSCRIBE_FAILED_EXCEPTION.throwChecked(e);
         }
     }
 
@@ -193,7 +197,7 @@ public class RestUtil {
                 "}" +
                 "," +
                 "{" +
-                    "\"label\":\"opencrvsId\"," +
+                    "\"label\":\"opencrvsBRN\"," +
                     "\"value\":\"" + opencrvsBirthId + "\"" +
                 "}" +
             "]");
@@ -255,34 +259,14 @@ public class RestUtil {
         return source;
     }
 
-    @Async
-    public void proxyPassReceivedCredential(String credentialData){
-        //get authtoken
-        String token = restTokenUtil.getOpencrvsAuthToken("subscribe to websub");
-        if(token==null || token.isEmpty()) return;
-
-        try{
-            HttpHeaders requestHeaders = new HttpHeaders();
-            requestHeaders.setContentType(MediaType.APPLICATION_JSON);
-            requestHeaders.add("Authorization","Bearer "+token);
-            HttpEntity<String> request = new HttpEntity<>(credentialData, requestHeaders);
-            String res = new RestTemplate().postForObject(opencrvsReceiveCredUrl,request,String.class);
-            LOGGER.info(LoggingConstants.SESSION,LoggingConstants.ID,"send credentials","Sent Credentials. response - "+res);
-        } catch (Exception e) {
-            LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"send credentials","Error sending Credentials: "+ExceptionUtils.getStackTrace(e));
-        }
-
-        publishStatusWebsub(credentialData);
-    }
-
-    public void publishStatusWebsub(String cred){
+    public void publishStatusWebsub(WebsubRequest cred, String status){
         //get authtoken
         String credStatusUpdateTopic = "CREDENTIAL_STATUS_UPDATE";
         String token = restTokenUtil.getPartnerAuthToken("Publish status to websub");
         if(token==null || token.isEmpty()) return;
 
         try{
-            String requestId = new JSONObject(cred).getJSONObject("event").getString("transactionId");
+            String requestId = cred.event.transactionId;
             String topic = partnerClientId + "/CREDENTIAL_ISSUED";
             String req =
                 "{" +
@@ -293,7 +277,7 @@ public class RestUtil {
                         "{" +
                             "\"id\":\"" + UUID.randomUUID() + "\"" + "," +
                             "\"requestId\":\"" + requestId + "\"" + "," +
-                            "\"status\":\"served\"" + "," +
+                            "\"status\":\"" + status + "\"" + "," +
                             "\"timestamp\":\"" + Timestamp.valueOf(DateUtils.getUTCCurrentDateTime()) + "\"" + "," +
                             "\"url\":null" +
                         "}" +
@@ -306,7 +290,7 @@ public class RestUtil {
             String res = new RestTemplate().postForObject(url,request,String.class);
             LOGGER.info(LoggingConstants.SESSION,LoggingConstants.ID,"publish status to websub","Published status. Response: "+res);
         } catch (Exception e) {
-            LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"publish status to websub","Error publishing status "+ExceptionUtils.getStackTrace(e));
+            LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,"publish status to websub","Error publishing status ", e);
         }
     }
 }

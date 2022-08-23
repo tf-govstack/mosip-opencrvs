@@ -7,6 +7,7 @@ import java.util.Properties;
 import java.util.concurrent.Future;
 import javax.annotation.PostConstruct;
 
+import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.exception.ExceptionUtils;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -22,6 +23,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
@@ -36,8 +38,20 @@ public class KafkaUtil{
 
   private static Logger LOGGER = LogUtil.getLogger(KafkaUtil.class);
 
-  @Autowired
-  private Environment env;
+  @Value("${mosip.opencrvs.kafka.bootstrap.server}")
+  private String bootstrapServer;
+  @Value("${mosip.opencrvs.kafka.topic.name}")
+  private String topicName;
+  @Value("${mosip.opencrvs.kafka.admin.request.timeout.ms}")
+  private String adminRequestTimeout;
+  @Value("${mosip.opencrvs.kafka.consumer.group.id}")
+  private String consumerGroupId;
+  @Value("${mosip.opencrvs.kafka.consumer.enable.auto.commit}")
+  private String consumerEnableAutoCommit;
+  @Value("${mosip.opencrvs.kafka.consumer.auto.commit.interval.ms}")
+  private String consumerAutoCommitInterval;
+  @Value("${mosip.opencrvs.kafka.consumer.auto.offset.reset}")
+  private String consumerAutoOffsetReset;
 
   private Admin kafkaAdmin;
   private KafkaProducer producer;
@@ -46,14 +60,6 @@ public class KafkaUtil{
   @PostConstruct
   public void init() {
     try{
-      String bootstrapServer = env.getProperty("mosip.opencrvs.kafka.bootstrap.server");
-      String topicName = env.getProperty("mosip.opencrvs.kafka.topic");
-      String adminRequestTimeout = env.getProperty("mosip.opencrvs.kafka.admin.request.timeout.ms");
-      String consumerGroupId = env.getProperty("mosip.opencrvs.kafka.consumer.group.id");
-      String consumerEnableAutoCommit = env.getProperty("mosip.opencrvs.kafka.consumer.enable.auto.commit");
-      String consumerAutoCommitInterval = env.getProperty("mosip.opencrvs.kafka.consumer.auto.commit.interval.ms");
-      String consumerAutoOffsetReset = env.getProperty("mosip.opencrvs.kafka.consumer.auto.offset.reset");
-
       Properties adminProps = new Properties();
       adminProps.setProperty(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
       adminProps.setProperty(AdminClientConfig.	REQUEST_TIMEOUT_MS_CONFIG, adminRequestTimeout);
@@ -82,8 +88,8 @@ public class KafkaUtil{
       kafkaAdmin.listTopics().names().get();
     }
     catch(Exception e){
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"KafkaUtil","Error connecting to kafka " + ExceptionUtils.getStackTrace(e));
-      throw new BaseUncheckedException(ErrorCode.KAFKA_CONNECTION_EXCEPTION_CODE,ErrorCode.KAFKA_CONNECTION_EXCEPTION_MESSAGE,e);
+      LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,"KafkaUtil","Error connecting to kafka ", e);
+      throw ErrorCode.KAFKA_CONNECTION_EXCEPTION.throwUnchecked(e);
     }
   }
 
@@ -98,13 +104,13 @@ public class KafkaUtil{
       }
     }
     catch(Exception e){
-      LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"KafkaUtil","Error creating topic " + ExceptionUtils.getStackTrace(e));
-      throw new BaseUncheckedException(ErrorCode.KAFKA_TOPIC_CREATE_EXCEPTION_CODE,ErrorCode.KAFKA_TOPIC_CREATE_EXCEPTION_MESSAGE,e);
+      LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,"KafkaUtil","Error creating topic ", e);
+      throw ErrorCode.KAFKA_TOPIC_CREATE_EXCEPTION.throwUnchecked(e);
     }
 
   }
 
-  public void syncPutMessageInKafka(String topic, String key, String value) {
+  public void syncPutMessageInKafka(String topic, String key, String value) throws BaseCheckedException{
     LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "Kafka Key - "+key, "Received put message request");
     LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID, "Kafka Key - "+key, "Received put message request with value : " + value);
     try{
@@ -114,12 +120,12 @@ public class KafkaUtil{
       RecordMetadata recordMetadata = future.get();
       if(recordMetadata == null){
         LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "Kafka Key - "+key, "Error putting message");
-        throw new BaseUncheckedException(ErrorCode.KAFKA_MSG_SEND_EXCEPTION_CODE,ErrorCode.KAFKA_MSG_SEND_EXCEPTION_MESSAGE);
+        throw ErrorCode.KAFKA_MSG_SEND_EXCEPTION.throwChecked();
       }
     }
     catch(Exception e){
-      LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "Kafka Key - "+key, "Error putting message : "+ ExceptionUtils.getStackTrace(e));
-      throw new BaseUncheckedException(ErrorCode.KAFKA_MSG_SEND_EXCEPTION_CODE,ErrorCode.KAFKA_MSG_SEND_EXCEPTION_MESSAGE,e);
+      LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "Kafka Key - "+key, "Error putting message : ", e);
+      throw ErrorCode.KAFKA_MSG_SEND_EXCEPTION.throwChecked(e);
     }
     LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "Kafka Key - "+key, "Message sent.");
   }

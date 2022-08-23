@@ -4,8 +4,8 @@ import javax.annotation.PreDestroy;
 
 import io.mosip.kernel.core.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.core.env.Environment;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -18,7 +18,6 @@ import io.mosip.kernel.core.exception.BaseUncheckedException;
 import io.mosip.opencrvs.constant.LoggingConstants;
 import io.mosip.opencrvs.service.Receiver;
 import io.mosip.opencrvs.util.LogUtil;
-import io.mosip.opencrvs.util.RestUtil;
 import io.mosip.opencrvs.util.KafkaUtil;
 
 @Configuration
@@ -26,11 +25,12 @@ public class AppInitConfig{
 
 	private static final Logger LOGGER = LogUtil.getLogger(AppInitConfig.class);
 
-	@Autowired
-	private Environment env;
-
-	@Autowired
-	private RestUtil restUtil;
+	@Value("${mosip.opencrvs.kafka.topic.name}")
+	private String kafkaTopicName;
+	@Value("${mosip.opencrvs.kafka.topic.partitions}")
+	private int kafkaTopicPartitions;
+	@Value("${mosip.opencrvs.kafka.topic.replication.factor}")
+	private short kafkaTopicReplication;
 
 	@Autowired
 	private KafkaUtil kafkaUtil;
@@ -40,7 +40,7 @@ public class AppInitConfig{
 
 	@EventListener(ApplicationReadyEvent.class)
 	public void init() throws BaseCheckedException{
-		kafkaUtil.createTopicIfNotExist(env.getProperty("mosip.opencrvs.kafka.topic"),1,(short)1);
+		kafkaUtil.createTopicIfNotExist(kafkaTopicName, kafkaTopicPartitions, kafkaTopicReplication);
 
 		receiver.receive();
 		LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Started Receiver.");
@@ -53,7 +53,7 @@ public class AppInitConfig{
 			LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Unsubscribe Successful");
 		}
 		catch(Exception e){
-			LOGGER.error(LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Error while unsubscribing " + ExceptionUtils.getStackTrace(e));
+			LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID, "ROOT", "Error while unsubscribing ", e);
 		}
 	}
 }
