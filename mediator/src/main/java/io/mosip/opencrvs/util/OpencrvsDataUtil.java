@@ -224,10 +224,12 @@ public class OpencrvsDataUtil {
                         }
                     }
                 }
+                break;
             }
             return null;
         } catch(NullPointerException e) {
-            throw ErrorCode.PARSE_RID_FROM_REQUEST.throwUnchecked(e);
+            LOGGER.error(LoggingConstants.FORMATTER_PREFIX,LoggingConstants.SESSION,LoggingConstants.ID,"ReceiveDto::build()","Error processing child or mother or task. Got null child or mother or task", e);
+            return null;
         }
     }
 
