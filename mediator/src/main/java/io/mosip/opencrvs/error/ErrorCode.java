@@ -35,6 +35,7 @@ public enum ErrorCode{
     MISSING_UIN_IN_DEATH_EVENT("OPN-CRVS-029", "Couldnot get UIN/VID from the death event"),
     UIN_DEACTIVATE_ERROR_DEATH_EVENT("OPN-CRVS-030", "Error Deactivating UIN on Death Event"),
     PARSE_RID_FROM_REQUEST("OPN-CRVS-031", "Error Parsing RID from request"),
+    ADDRESS_FETCHING_EXCEPTION("OPN-CRVS-032", "Error fetching Addresses from OpenCRVS"),
 
     ;
     private final String errorCode;

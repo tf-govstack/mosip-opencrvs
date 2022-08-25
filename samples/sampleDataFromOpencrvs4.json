@@ -1,0 +1,259 @@
+{
+  "timestamp": "2022-08-24T11:42:02.664Z",
+  "id": "b249d9c0-8067-4259-99e1-d8ae3db1394c",
+  "event": {
+    "hub": {
+      "topic": "BIRTH_REGISTERED"
+    },
+    "context": [
+      {
+        "resourceType": "Bundle",
+        "entry": [
+          {
+            "resource": {
+              "resourceType": "Task",
+              "status": "requested",
+              "code": {
+                "coding": [
+                  {
+                    "system": "http://opencrvs.org/specs/types",
+                    "code": "BIRTH"
+                  }
+                ]
+              },
+              "focus": {
+                "reference": "Composition/66854a75-94c8-47fb-9d00-e8c64cc0e4b3"
+              },
+              "identifier": [
+                {
+                  "system": "http://opencrvs.org/specs/id/draft-id",
+                  "value": "ec5f8ad0-9c75-49d0-874c-049fc8bd6586"
+                },
+                {
+                  "system": "http://opencrvs.org/specs/id/birth-tracking-id",
+                  "value": "ABCDEF3"
+                },
+                {
+                  "system": "http://opencrvs.org/specs/id/birth-registration-number",
+                  "value": "2022ABCDEF3"
+                }
+              ],
+              "extension": [
+                {
+                  "url": "http://opencrvs.org/specs/extension/contact-person",
+                  "valueString": "MOTHER"
+                },
+                {
+                  "url": "http://opencrvs.org/specs/extension/contact-person-phone-number",
+                  "valueString": "+260789456123"
+                },
+                {
+                  "url": "http://opencrvs.org/specs/extension/timeLoggedMS",
+                  "valueInteger": 391824
+                },
+                {
+                  "url": "http://opencrvs.org/specs/extension/regLastUser",
+                  "valueReference": {
+                    "reference": "Practitioner/1ce06731-e247-43b4-8b91-057b853270a0"
+                  }
+                },
+                {
+                  "url": "http://opencrvs.org/specs/extension/regLastLocation",
+                  "valueReference": {
+                    "reference": "Location/db3ec3e9-bf71-491e-b46c-9f00bb92e34c"
+                  }
+                },
+                {
+                  "url": "http://opencrvs.org/specs/extension/regLastOffice",
+                  "valueString": "Ibombo District Office",
+                  "valueReference": {
+                    "reference": "Location/bdf417f6-6795-4352-98d7-0b735cf27ae1"
+                  }
+                }
+              ],
+              "lastModified": "2022-08-24T11:41:54.679Z",
+              "businessStatus": {
+                "coding": [
+                  {
+                    "system": "http://opencrvs.org/specs/reg-status",
+                    "code": "REGISTERED"
+                  }
+                ]
+              },
+              "meta": {
+                "lastUpdated": "2022-08-24T11:41:57.107+00:00",
+                "versionId": "865dbefd-d154-46bb-9e16-a7013df2f328"
+              },
+              "id": "1fb7a84a-1b25-427c-aec5-9b44b8c7b491"
+            }
+          },
+          {
+            "resource": {
+              "resourceType": "Patient",
+              "active": true,
+              "name": [
+                {
+                  "use": "en",
+                  "given": [
+                    "Round1Test3"
+                  ],
+                  "family": [
+                    "OpencrvsMosip"
+                  ]
+                }
+              ],
+              "gender": "male",
+              "birthDate": "2022-08-24",
+              "meta": {
+                "lastUpdated": "2022-08-24T11:41:57.842+00:00",
+                "versionId": "4931e4f7-ac90-4167-a9e9-2bd6fb02dd89"
+              },
+              "id": "f2df4331-c7df-4dcd-b507-3e62822afada",
+              "identifier": [
+                {
+                  "type": "BIRTH_REGISTRATION_NUMBER",
+                  "value": "2022ABCDEF3"
+                },
+		{
+		  "type": "MOSIP_AID",
+		  "value": "45451454520002120220824173802"
+		}
+              ]
+            }
+          },
+          {
+            "resource": {
+              "resourceType": "DocumentReference",
+              "masterIdentifier": {
+                "system": "urn:ietf:rfc:3986",
+                "value": "13c47a02-7777-401c-96d6-a209bc996b71"
+              },
+              "status": "current",
+              "content": [
+                {
+                  "attachment": {
+                    "contentType": "image/png",
+		    "data": "<manually-removed>"
+                  }
+                }
+              ],
+              "type": {
+                "coding": [
+                  {
+                    "system": "http://opencrvs.org/specs/supporting-doc-type",
+                    "code": "NOTIFICATION_OF_BIRTH"
+                  }
+                ]
+              },
+              "subject": {
+                "display": "CHILD"
+              },
+              "meta": {
+                "lastUpdated": "2022-08-24T11:41:57.138+00:00",
+                "versionId": "e8c04dba-973c-43f1-b862-c09a49937dd6"
+              },
+              "id": "959c4bbb-1182-4240-ad4f-678f0ad9b306"
+            }
+          },
+          {
+            "resource": {
+              "resourceType": "Patient",
+              "active": true,
+              "name": [
+                {
+                  "use": "en",
+                  "given": [
+                    "Sara"
+                  ],
+                  "family": [
+                    "Mosip"
+                  ]
+                }
+              ],
+              "birthDate": "1987-06-05",
+              "maritalStatus": {
+                "coding": [
+                  {
+                    "system": "http://hl7.org/fhir/StructureDefinition/marital-status",
+                    "code": "S"
+                  }
+                ],
+                "text": "SINGLE"
+              },
+              "address": [
+                {
+                  "type": "PRIMARY_ADDRESS",
+                  "line": [
+                    "Road Number 1",
+                    "Mother Street",
+                    "Mother Res Area",
+                    "",
+                    "",
+                    "URBAN"
+                  ],
+                  "city": "Ibombo Town",
+                  "district": "db3ec3e9-bf71-491e-b46c-9f00bb92e34c",
+                  "state": "977d8f3b-2fa3-40ba-b479-a8df4ebee26e",
+                  "postalCode": "560100",
+                  "country": "FAR"
+                }
+              ],
+              "extension": [
+                {
+                  "url": "http://hl7.org/fhir/StructureDefinition/patient-nationality",
+                  "extension": [
+                    {
+                      "url": "code",
+                      "valueCodeableConcept": {
+                        "coding": [
+                          {
+                            "system": "urn:iso:std:iso:3166",
+                            "code": "FAR"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "url": "period",
+                      "valuePeriod": {
+                        "start": "",
+                        "end": ""
+                      }
+                    }
+                  ]
+                },
+                {
+                  "url": "http://opencrvs.org/specs/extension/educational-attainment",
+                  "valueString": "PRIMARY_ISCED_1"
+                }
+              ],
+              "meta": {
+                "lastUpdated": "2022-08-24T11:41:57.187+00:00",
+                "versionId": "b888a649-eeac-4484-9c12-7543949a9458"
+              },
+              "id": "4983a9d5-b715-4e8b-a895-6e086b0392d9"
+            }
+          },
+          {
+            "resource": {
+              "resourceType": "RelatedPerson",
+              "relationship": {
+                "coding": [
+                  {
+                    "system": "http://hl7.org/fhir/ValueSet/relatedperson-relationshiptype",
+                    "code": "MOTHER"
+                  }
+                ]
+              },
+              "meta": {
+                "lastUpdated": "2022-08-24T11:41:57.128+00:00",
+                "versionId": "4fcab4a8-b186-4caa-8943-ceb6d5e86766"
+              },
+              "id": "8bb03785-f25d-4837-a570-f37f238ccff3"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

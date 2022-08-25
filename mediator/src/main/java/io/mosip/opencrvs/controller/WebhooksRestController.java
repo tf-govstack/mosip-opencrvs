@@ -72,14 +72,14 @@ public class WebhooksRestController {
         return SimpleMessageResponse.setResponseMessage(message);
     }
 
-    @GetMapping(value = "/generateRid")
-    public String generateRid(HttpServletRequest request) throws BaseCheckedException{
+    @GetMapping(value = "/generateAid")
+    public String generateAid(HttpServletRequest request) throws BaseCheckedException{
         restTokenUtil.validateToken(env.getProperty("mosip.iam.validate_endpoint"), request.getCookies(), null);
 
         try{
             return "\"" + receiver.generateDefaultRegistrationId() + "\"";
         } catch(Exception e){
-            LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID,"WebhooksRestController::generateRid","Unknown Error generating rid",e);
+            LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID,"WebhooksRestController::generateAid","Unknown Error generating rid",e);
             throw ErrorCode.RID_GENERATE_EXCEPTION.throwChecked();
         }
     }

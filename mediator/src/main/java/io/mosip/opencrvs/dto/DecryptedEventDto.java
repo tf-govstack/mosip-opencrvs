@@ -1,6 +1,7 @@
 package io.mosip.opencrvs.dto;
 
 import java.util.List;
+import java.util.Map;
 
 public class DecryptedEventDto {
     public static class Event {
@@ -30,6 +31,7 @@ public class DecryptedEventDto {
                     public List<Name> name;
                     public String gender;
                     public String birthDate;
+                    public List<Map<String,Object>> address;
                     public List<Identifier> identifier;
                     public List<Extension> extension;
                 }

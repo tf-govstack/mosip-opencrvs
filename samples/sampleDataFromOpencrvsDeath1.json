@@ -1,0 +1,181 @@
+{
+  "timestamp": "2022-08-03T20:14:25.267Z",
+  "id": "f6e5a67b-de56-49b5-8208-bc4a136094dd",
+  "event": {
+    "hub": {
+      "topic": "DEATH_REGISTERED"
+    },
+    "context": [
+      {
+        "resourceType": "Bundle",
+        "entry": [
+          {
+            "resource": {
+              "resourceType": "Task",
+              "status": "requested",
+              "code": {
+                "coding": [
+                  {
+                    "system": "http://opencrvs.org/specs/types",
+                    "code": "DEATH"
+                  }
+                ]
+              },
+              "focus": {
+                "reference": "Composition/5620f23b-e67d-4ac6-af62-c3ac5d61c79e"
+              },
+              "identifier": [
+                {
+                  "system": "http://opencrvs.org/specs/id/draft-id",
+                  "value": "c3360551-c9a5-449a-a3f4-b30ffa34e19d"
+                },
+                {
+                  "system": "http://opencrvs.org/specs/id/death-tracking-id",
+                  "value": "DJK5F5R"
+                },
+                {
+                  "system": "http://opencrvs.org/specs/id/death-registration-number",
+                  "value": "2022DJK5F5R"
+                }
+              ],
+              "extension": [
+                {
+                  "url": "http://opencrvs.org/specs/extension/contact-person",
+                  "valueString": "SPOUSE"
+                },
+                {
+                  "url": "http://opencrvs.org/specs/extension/contact-person-phone-number",
+                  "valueString": "+260765656568"
+                },
+                {
+                  "url": "http://opencrvs.org/specs/extension/timeLoggedMS",
+                  "valueInteger": 146990
+                },
+                {
+                  "url": "http://opencrvs.org/specs/extension/regLastUser",
+                  "valueReference": {
+                    "reference": "Practitioner/be8462b5-36a2-4f21-8d34-b4b679f7d3b3"
+                  }
+                },
+                {
+                  "url": "http://opencrvs.org/specs/extension/regLastLocation",
+                  "valueReference": {
+                    "reference": "Location/b09122df-81f8-41a0-b5c6-68cba4145cab"
+                  }
+                },
+                {
+                  "url": "http://opencrvs.org/specs/extension/regLastOffice",
+                  "valueString": "Ibombo District Office",
+                  "valueReference": {
+                    "reference": "Location/c9c4d6e9-981c-4646-98fe-4014fddebd5e"
+                  }
+                },
+                {
+                  "url": "http://opencrvs.org/specs/extension/configuration",
+                  "valueReference": {
+                    "reference": "IN_CONFIGURATION"
+                  }
+                }
+              ],
+              "lastModified": "2022-08-03T20:14:22.367Z",
+              "businessStatus": {
+                "coding": [
+                  {
+                    "system": "http://opencrvs.org/specs/reg-status",
+                    "code": "REGISTERED"
+                  }
+                ]
+              },
+              "meta": {
+                "lastUpdated": "2022-08-03T20:14:22.819+00:00",
+                "versionId": "4eed3e56-e366-4f6a-ad9b-c4bbc7185cf9"
+              },
+              "id": "19cd2284-c2e0-4933-b5f1-73aa8b779c87"
+            }
+          },
+          {
+            "resource": {
+              "resourceType": "Patient",
+              "active": true,
+              "identifier": [
+                {
+                  "value": "2784528096",
+                  "type": "NATIONAL_ID"
+                },
+                {
+                  "value": "XXXXXXXX",
+                  "type": "MOSIP_UINTOKEN"
+                },
+                {
+                  "type": "DEATH_REGISTRATION_NUMBER",
+                  "value": "2022DJK5F5R"
+                }
+              ],
+              "name": [
+                {
+                  "use": "en",
+                  "given": [
+                    "Frank"
+                  ],
+                  "family": [
+                    "Spencer"
+                  ]
+                }
+              ],
+              "gender": "male",
+              "birthDate": "1990-09-20",
+              "address": [
+                {
+                  "type": "PRIMARY_ADDRESS",
+                  "line": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "URBAN"
+                  ],
+                  "district": "b09122df-81f8-41a0-b5c6-68cba4145cab",
+                  "state": "7dbf10a9-23d9-4038-8b1c-9f6547ab4877",
+                  "country": "FAR"
+                }
+              ],
+              "deceasedBoolean": true,
+              "deceasedDateTime": "2022-06-23",
+              "extension": [
+                {
+                  "url": "http://hl7.org/fhir/StructureDefinition/patient-nationality",
+                  "extension": [
+                    {
+                      "url": "code",
+                      "valueCodeableConcept": {
+                        "coding": [
+                          {
+                            "system": "urn:iso:std:iso:3166",
+                            "code": "FAR"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "url": "period",
+                      "valuePeriod": {
+                        "start": "",
+                        "end": ""
+                      }
+                    }
+                  ]
+                }
+              ],
+              "meta": {
+                "lastUpdated": "2022-08-03T20:14:22.931+00:00",
+                "versionId": "0d4ef535-2a25-4fc8-9d6d-edb2f19c9015"
+              },
+              "id": "ce06bd6c-2d8a-4bbe-813a-271c67a031ad"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
