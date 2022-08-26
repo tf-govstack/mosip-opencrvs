@@ -223,8 +223,8 @@ public class OpencrvsDataUtil {
                             return identifier.value;
                         }
                     }
+                    break;
                 }
-                break;
             }
             return null;
         } catch(NullPointerException e) {
