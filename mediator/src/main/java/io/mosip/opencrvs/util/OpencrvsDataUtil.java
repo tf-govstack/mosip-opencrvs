@@ -3,6 +3,7 @@ package io.mosip.opencrvs.util;
 import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.exception.BaseUncheckedException;
 import io.mosip.kernel.core.logger.spi.Logger;
+import io.mosip.kernel.core.util.StringUtils;
 import io.mosip.opencrvs.constant.LoggingConstants;
 import io.mosip.opencrvs.dto.DecryptedEventDto;
 import io.mosip.opencrvs.dto.ReceiveDto;
@@ -169,7 +170,7 @@ public class OpencrvsDataUtil {
 
     public String getGenderFromPatientBody(DecryptedEventDto.Event.Context.Entry.Resource patient){
         try{
-            return returnSingleValueWithLangCode(patient.gender, defaultLangCode);
+            return returnSingleValueInArrayWithLangCode(StringUtils.capitalizeFirstLetter(patient.gender), defaultLangCode);
         } catch(NullPointerException ne){
             throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwUnchecked("while getting gender from request ", ne);
         }
@@ -242,7 +243,7 @@ public class OpencrvsDataUtil {
         return null;
     }
 
-    public String returnSingleValueWithLangCode(String value, String langCode){
+    public String returnSingleValueInArrayWithLangCode(String value, String langCode){
         return "[" + returnValueWithLangCode(value, langCode) + "]";
     }
     public String returnValueWithLangCode(String value, String langCode){
@@ -261,7 +262,7 @@ public class OpencrvsDataUtil {
                 if (i!=opencrvsStartingLineNumber) lineValue += joiner.replaceAll("\"", "");
                 lineValue += ((List<String>) address.get("line")).get(i);
             }
-            toReturn += "\"addressLine" + mosipLineNumber + "\": " + returnSingleValueWithLangCode(lineValue, langCode) + ",";
+            toReturn += "\"addressLine" + mosipLineNumber + "\": " + returnSingleValueInArrayWithLangCode(lineValue, langCode) + ",";
         }
         return toReturn;
     }
@@ -273,9 +274,9 @@ public class OpencrvsDataUtil {
             String opencrvsLocation = mappingLocation.split(":")[1];
             String opencrvsLocationIfId = mappingLocation.split(":")[2];
             if("id".equals(opencrvsLocationIfId)){
-                toReturn += "\"" + mosipLocation + "\": " + returnSingleValueWithLangCode(fetchAddressValueFromId((String)address.get(opencrvsLocation)), langCode) + ",";
+                toReturn += "\"" + mosipLocation + "\": " + returnSingleValueInArrayWithLangCode(fetchAddressValueFromId((String)address.get(opencrvsLocation)), langCode) + ",";
             } else {
-                toReturn += "\"" + mosipLocation + "\": " + returnSingleValueWithLangCode((String)address.get(opencrvsLocation), langCode) + ",";
+                toReturn += "\"" + mosipLocation + "\": " + returnSingleValueInArrayWithLangCode((String)address.get(opencrvsLocation), langCode) + ",";
             }
         }
         return toReturn;
