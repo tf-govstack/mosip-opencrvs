@@ -72,7 +72,7 @@ public class DeathEventHandlerService {
         String rid;
         try{
             rid = opencrvsDataUtil.getRidFromBody(decryptedEventDto);
-            if(rid == null) rid = receiver.generateDefaultRegistrationId();
+            if(rid == null || rid.isEmpty()) rid = receiver.generateDefaultRegistrationId();
         } catch(Exception e) {
             LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,"DeathEvent:generateRid", "Couldnt generate rid", e);
             throw ErrorCode.RID_GENERATE_EXCEPTION.throwChecked(e);

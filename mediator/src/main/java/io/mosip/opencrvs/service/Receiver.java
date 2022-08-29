@@ -201,7 +201,7 @@ public class Receiver {
 			String ridObtained = jdbcUtil.getBirthRid(txnId);
 			if (ridObtained==null || ridObtained.isEmpty()){
 				String receivedRid = opencrvsDataUtil.getRidFromBody(requestBody);
-				request.setRid(receivedRid==null ? generateDefaultRegistrationId() : receivedRid);
+				request.setRid( (receivedRid==null || receivedRid.isEmpty()) ? generateDefaultRegistrationId() : receivedRid);
 				jdbcUtil.updateBirthRidAndStatus(txnId,request.getRid(),"RID Generated");
 			} else {
 				request.setRid(ridObtained);
