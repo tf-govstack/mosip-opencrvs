@@ -3,6 +3,7 @@ package io.mosip.opencrvs.controller;
 import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.util.CryptoUtil;
 import io.mosip.opencrvs.dto.BaseEventRequest;
+import io.mosip.opencrvs.dto.DecryptedEventDto;
 import io.mosip.opencrvs.dto.SimpleMessageResponse;
 import io.mosip.opencrvs.error.ErrorCode;
 import io.mosip.opencrvs.service.DeathEventHandlerService;
@@ -54,7 +55,10 @@ public class WebhooksRestController {
 
         opencrvsCryptoUtil.verifyThrowException(CryptoUtil.decodePlainBase64(body.getData()), CryptoUtil.decodePlainBase64(body.getSignature()));
 
-        producer.produce(body.getId(), body.toString());
+        //Problems with putting large messages to Kafka. TODO
+        //producer.produce(body.getId(), body.toString());
+        DecryptedEventDto preProcessResult = receiver.preProcess(body.getId(),body.toString());
+        receiver.createAndUploadPacket(body.getId(), preProcessResult);
 
         return SimpleMessageResponse.setResponseMessage(Constants.PACKET_CREATION_STARTED);
     }
