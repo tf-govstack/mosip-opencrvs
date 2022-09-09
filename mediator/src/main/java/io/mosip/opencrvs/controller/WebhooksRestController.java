@@ -3,6 +3,7 @@ package io.mosip.opencrvs.controller;
 import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.util.CryptoUtil;
 import io.mosip.opencrvs.dto.BaseEventRequest;
+import io.mosip.opencrvs.dto.DecryptedEventDto;
 import io.mosip.opencrvs.dto.SimpleMessageResponse;
 import io.mosip.opencrvs.error.ErrorCode;
 import io.mosip.opencrvs.service.DeathEventHandlerService;
@@ -54,7 +55,10 @@ public class WebhooksRestController {
 
         opencrvsCryptoUtil.verifyThrowException(CryptoUtil.decodePlainBase64(body.getData()), CryptoUtil.decodePlainBase64(body.getSignature()));
 
-        producer.produce(body.getId(), body.toString());
+        //Problems with putting large messages to Kafka. TODO
+        //producer.produce(body.getId(), body.toString());
+        DecryptedEventDto preProcessResult = receiver.preProcess(body.getId(),body.toString());
+        receiver.createAndUploadPacket(body.getId(), preProcessResult);
 
         return SimpleMessageResponse.setResponseMessage(Constants.PACKET_CREATION_STARTED);
     }
@@ -72,14 +76,14 @@ public class WebhooksRestController {
         return SimpleMessageResponse.setResponseMessage(message);
     }
 
-    @GetMapping(value = "/generateRid")
-    public String generateRid(HttpServletRequest request) throws BaseCheckedException{
+    @GetMapping(value = "/generateAid")
+    public String generateAid(HttpServletRequest request) throws BaseCheckedException{
         restTokenUtil.validateToken(env.getProperty("mosip.iam.validate_endpoint"), request.getCookies(), null);
 
         try{
             return "\"" + receiver.generateDefaultRegistrationId() + "\"";
         } catch(Exception e){
-            LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID,"WebhooksRestController::generateRid","Unknown Error generating rid",e);
+            LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION, LoggingConstants.ID,"WebhooksRestController::generateAid","Unknown Error generating rid",e);
             throw ErrorCode.RID_GENERATE_EXCEPTION.throwChecked();
         }
     }

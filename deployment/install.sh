@@ -11,6 +11,7 @@ CHART_VERSION=12.0.2
 
 if [ -z $OPENCRVS_AUTH_URL ]; then read -p "Give Opencrvs Auth Url : " OPENCRVS_AUTH_URL ; fi
 if [ -z $OPENCRVS_RECEIVE_CREDENTIAL_URL ]; then read -p "Give Opencrvs Receive Uin on Birth Url : " OPENCRVS_RECEIVE_CREDENTIAL_URL ; fi
+if [ -z $OPENCRVS_LOCATIONS_URL ]; then read -p "Give OpenCRVS Country Config Locations Url : " OPENCRVS_LOCATIONS_URL ; fi
 
 if [ -z $OPENCRVS_CLIENT_ID ]; then read -p "Give Opencrvs Client id : " OPENCRVS_CLIENT_ID; fi
 if [ -z $OPENCRVS_CLIENT_SECRET ]; then read -p "Give Opencrvs Client secret : " OPENCRVS_CLIENT_SECRET; fi
@@ -60,8 +61,10 @@ helm -n $NS install opencrvs-mediator mosip/opencrvs-mediator \
   --set mediator.opencrvs.clientSecretName="opencrvs-client-creds" \
   --set mediator.opencrvs.partnerClientSecretName="opencrvs-partner-client-creds" \
   --set mediator.opencrvs.receiveCredentialUrl=$OPENCRVS_RECEIVE_CREDENTIAL_URL \
+  --set mediator.opencrvs.locationsUrl=$OPENCRVS_LOCATIONS_URL \
   --set mediator.opencrvs.certsKeysSecretName="opencrvs-partner-certs-keys" \
   --set mediator.mosipOpencrvsKeycloakClientId="mosip-resident-client" \
+  --set mediator.mosipOpencrvsDeathClientId="mosip-idrepo-client" \
   --set istio.existingGateway="istio-system/public" \
   --wait
 

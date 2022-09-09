@@ -12,6 +12,7 @@ import io.mosip.opencrvs.dto.DecryptedEventDto;
 import io.mosip.opencrvs.error.ErrorCode;
 import io.mosip.opencrvs.util.LogUtil;
 import io.mosip.opencrvs.util.OpencrvsCryptoUtil;
+import io.mosip.opencrvs.util.OpencrvsDataUtil;
 import io.mosip.opencrvs.util.RestTokenUtil;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,6 +61,9 @@ public class DeathEventHandlerService {
     @Autowired
     private RestTokenUtil restTokenUtil;
 
+    @Autowired
+    private OpencrvsDataUtil opencrvsDataUtil;
+
     public String handleEvent(BaseEventRequest request) throws BaseCheckedException {
         DecryptedEventDto decryptedEventDto = receiver.preProcess(request.getId(), request.toString());
         String uinVid = getUINFromDecryptedEvent(decryptedEventDto);
@@ -67,7 +71,8 @@ public class DeathEventHandlerService {
         String uin = getUINFromUINVID(uinVid, token);
         String rid;
         try{
-            rid = receiver.generateDefaultRegistrationId();
+            rid = opencrvsDataUtil.getRidFromBody(decryptedEventDto);
+            if(rid == null || rid.isEmpty()) rid = receiver.generateDefaultRegistrationId();
         } catch(Exception e) {
             LOGGER.error(LoggingConstants.FORMATTER_PREFIX, LoggingConstants.SESSION,LoggingConstants.ID,"DeathEvent:generateRid", "Couldnt generate rid", e);
             throw ErrorCode.RID_GENERATE_EXCEPTION.throwChecked(e);

@@ -3,16 +3,24 @@ package io.mosip.opencrvs.util;
 import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.exception.BaseUncheckedException;
 import io.mosip.kernel.core.logger.spi.Logger;
+import io.mosip.kernel.core.util.StringUtils;
 import io.mosip.opencrvs.constant.LoggingConstants;
 import io.mosip.opencrvs.dto.DecryptedEventDto;
 import io.mosip.opencrvs.dto.ReceiveDto;
 import io.mosip.opencrvs.error.ErrorCode;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
+import javax.annotation.PostConstruct;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class OpencrvsDataUtil {
@@ -20,26 +28,18 @@ public class OpencrvsDataUtil {
 
     @Value("${IDSchema.Version}")
     private String idschemaVersion;
-    @Value("${opencrvs.data.gender.default.lang.code}")
-    private String genderDefaultLangCode;
+    @Value("${opencrvs.data.lang.code.default}")
+    private String defaultLangCode;
+    @Value("${opencrvs.locations.url}")
+    private String locationsUrl;
     @Value("${opencrvs.data.lang.code.mapping}")
     private String langCodeMapping;
-    @Value("${opencrvs.data.dummy.address.line1}")
-    private String dummyAddressLine1;
-    @Value("${opencrvs.data.dummy.address.line2}")
-    private String dummyAddressLine2;
-    @Value("${opencrvs.data.dummy.address.line3}")
-    private String dummyAddressLine3;
-    @Value("${opencrvs.data.dummy.region}")
-    private String dummyRegion;
-    @Value("${opencrvs.data.dummy.province}")
-    private String dummyProvince;
-    @Value("${opencrvs.data.dummy.city}")
-    private String dummyCity;
-    @Value("${opencrvs.data.dummy.zone}")
-    private String dummyZone;
-    @Value("${opencrvs.data.dummy.postal.code}")
-    private String dummyPostalCode;
+    @Value("${opencrvs.data.address.line.mapping}")
+    private String addressLineMapping;
+    @Value("${opencrvs.data.address.location.mapping}")
+    private String addressLocationMapping;
+    @Value("${opencrvs.data.address.line.joiner}")
+    private String addressLineJoiner;
     @Value("${opencrvs.data.dummy.phone}")
     private String dummyPhone;
     @Value("${opencrvs.data.dummy.emailSuffix}")
@@ -48,22 +48,35 @@ public class OpencrvsDataUtil {
     @Autowired
     private Environment env;
 
+    @Autowired
+    private RestTokenUtil restTokenUtil;
+
+    private JSONObject opencrvsLocationsJson;
+
+    @PostConstruct
+    public void initLocations(){
+        opencrvsLocationsJson = fetchAllAddresses();
+    }
+
     public ReceiveDto buildIdJson(DecryptedEventDto opencrvsRequestBody){
         List<DecryptedEventDto.Event.Context.Entry> contextEntries;
-        DecryptedEventDto.Event.Context.Entry.Resource patient = null;
+        DecryptedEventDto.Event.Context.Entry.Resource child = null;
+        DecryptedEventDto.Event.Context.Entry.Resource mother = null;
         DecryptedEventDto.Event.Context.Entry.Resource task = null;
         try{
             contextEntries = opencrvsRequestBody.event.context.get(0).entry;
             for(DecryptedEventDto.Event.Context.Entry entry: contextEntries){
-                if("Patient".equals(entry.resource.resourceType)){
-                    patient = entry.resource;
-                } else if("Task".equals(entry.resource.resourceType)) {
+                if("Task".equals(entry.resource.resourceType)) {
                     task = entry.resource;
+                } else if(child==null && "Patient".equals(entry.resource.resourceType)){
+                    child = entry.resource;
+                } else if(child!=null && "Patient".equals(entry.resource.resourceType)){
+                    mother = entry.resource;
                 }
-                if (patient!=null && task!=null) break;
+                if (child!=null && mother!=null && task!=null) break;
             }
-            if(patient == null || task == null){
-                LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"ReceiveDto::build()","Error processing patient/task. Got null patient/task");
+            if(child == null || mother == null || task == null ){
+                LOGGER.error(LoggingConstants.SESSION,LoggingConstants.ID,"ReceiveDto::build()","Error processing child or mother or task. Got null child or mother or task");
                 throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwUnchecked();
             }
         } catch(NullPointerException ne){
@@ -73,28 +86,23 @@ public class OpencrvsDataUtil {
 
         ReceiveDto returner = new ReceiveDto();
 
-        returner.setOpencrvsBRN(getOpencrvsBRNFromPatientBody(patient));
+        returner.setOpencrvsBRN(getOpencrvsBRNFromPatientBody(child));
 
-        String fullName = getFullNameFromPatientBody(patient);
+        String fullName = getFullNameFromPatientBody(child);
+        Map<String, Object> primaryAddress = getPrimaryAddressFromPatient(mother);
 
         returner.setIdentityJson("{"+
             "\"introducerBiometrics\":\"null\"," +
             "\"identity\":{" +
                 "\"IDSchemaVersion\":" + idschemaVersion + "," +
                 "\"fullName\":" + fullName + "," +
-                "\"dateOfBirth\":" + getDOBFromPatientBody(patient) + "," +
-                "\"gender\":" + getGenderFromPatientBody(patient) +"," +
-                "\"addressLine1\":" + dummyAddressLine1 + "," +
-                "\"addressLine2\":" + dummyAddressLine2 + "," +
-                "\"addressLine3\":" + dummyAddressLine3 + "," +
-                "\"region\":" + dummyRegion + "," +
-                "\"province\":" + dummyProvince + "," +
-                "\"city\":" + dummyCity + "," +
-                "\"zone\":" + dummyZone + "," +
-                "\"postalCode\":" + dummyPostalCode + "," +
+                "\"dateOfBirth\":" + getDOBFromPatientBody(child) + "," +
+                "\"gender\":" + getGenderFromPatientBody(child) +"," +
+                getAddressLinesFromAddress(primaryAddress, addressLineMapping, addressLineJoiner, defaultLangCode) +
+                getAddressLocationFromAddress(primaryAddress, addressLocationMapping, defaultLangCode) +
                 //"\"phone\":" + getPhoneFromTaskBody(task) + "," +
                 "\"phone\":" + dummyPhone + "," +
-                "\"email\":" + getEmailFromPatientBody(patient) + "," +
+                "\"email\":" + getEmailFromPatientBody(child) + "," +
                 "\"proofOfIdentity\":" +
                 "null" +
                 //"{" +
@@ -150,10 +158,7 @@ public class OpencrvsDataUtil {
                 }
                 if(!isSet) langCode = "eng";
 
-                ret+="{" +
-                    "\"language\":\""+langCode+"\"," +
-                    "\"value\":\""+ givenName + " " + familyName + "\"" +
-                "}";
+                ret += returnValueWithLangCode(givenName + " " + familyName, langCode);
                 if(i!=names.size()-1) ret+=",";
             }
             ret+="]";
@@ -165,10 +170,7 @@ public class OpencrvsDataUtil {
 
     public String getGenderFromPatientBody(DecryptedEventDto.Event.Context.Entry.Resource patient){
         try{
-            return "[{" +
-                "\"language\":\""+ genderDefaultLangCode +"\"," +
-                "\"value\":\""+ patient.gender + "\"" +
-            "}]";
+            return returnSingleValueInArrayWithLangCode(StringUtils.capitalizeFirstLetter(patient.gender), defaultLangCode);
         } catch(NullPointerException ne){
             throw ErrorCode.JSON_PROCESSING_EXCEPTION.throwUnchecked("while getting gender from request ", ne);
         }
@@ -218,15 +220,87 @@ public class OpencrvsDataUtil {
             for(DecryptedEventDto.Event.Context.Entry entry: contextEntries) {
                 if ("Patient".equals(entry.resource.resourceType)) {
                     for(DecryptedEventDto.Event.Context.Entry.Resource.Identifier identifier : entry.resource.identifier){
-                        if("MOSIP_RID".equals(identifier.type)){
+                        if("MOSIP_AID".equals(identifier.type)){
                             return identifier.value;
                         }
                     }
+                    break;
                 }
             }
             return null;
         } catch(NullPointerException e) {
-            throw ErrorCode.PARSE_RID_FROM_REQUEST.throwUnchecked(e);
+            LOGGER.error(LoggingConstants.FORMATTER_PREFIX,LoggingConstants.SESSION,LoggingConstants.ID,"ReceiveDto::build()","Error processing child or mother or task. Got null child or mother or task", e);
+            return null;
+        }
+    }
+
+    public Map<String, Object> getPrimaryAddressFromPatient(DecryptedEventDto.Event.Context.Entry.Resource patient){
+        for(Map<String, Object> address: patient.address){
+            if("PRIMARY_ADDRESS".equals(address.get("type"))){
+                return address;
+            }
+        }
+        return null;
+    }
+
+    public String returnSingleValueInArrayWithLangCode(String value, String langCode){
+        return "[" + returnValueWithLangCode(value, langCode) + "]";
+    }
+    public String returnValueWithLangCode(String value, String langCode){
+        return "{\"language\":\"" + langCode + "\",\"value\":\"" + value + "\"}";
+    }
+
+    public String getAddressLinesFromAddress(Map<String, Object> address, String mapping, String joiner, String langCode){
+        String toReturn = "";
+        for (String mappingLine : mapping.split("\\|")) {
+            String mosipLineNumber = mappingLine.split(":")[0];
+            String opencrvsLines = mappingLine.split(":")[1];
+            int opencrvsStartingLineNumber = Integer.parseInt(opencrvsLines.split("-")[0]) - 1;
+            int opencrvsEndingLineNumber = Integer.parseInt(opencrvsLines.split("-")[1]) - 1;
+            String lineValue = "";
+            for(int i=opencrvsStartingLineNumber;i<opencrvsEndingLineNumber; i++){
+                if (i!=opencrvsStartingLineNumber) lineValue += joiner.replaceAll("\"", "");
+                lineValue += ((List<String>) address.get("line")).get(i);
+            }
+            toReturn += "\"addressLine" + mosipLineNumber + "\": " + returnSingleValueInArrayWithLangCode(lineValue, langCode) + ",";
+        }
+        return toReturn;
+    }
+
+    public String getAddressLocationFromAddress(Map<String, Object> address, String mapping, String langCode){
+        String toReturn = "";
+        for (String mappingLocation : mapping.split("\\|")) {
+            String mosipLocation = mappingLocation.split(":")[0];
+            String opencrvsLocation = mappingLocation.split(":")[1];
+            String opencrvsLocationIfId = mappingLocation.split(":")[2];
+            if("id".equals(opencrvsLocationIfId)){
+                toReturn += "\"" + mosipLocation + "\": " + returnSingleValueInArrayWithLangCode(fetchAddressValueFromId((String)address.get(opencrvsLocation)), langCode) + ",";
+            } else {
+                toReturn += "\"" + mosipLocation + "\": " + returnSingleValueInArrayWithLangCode((String)address.get(opencrvsLocation), langCode) + ",";
+            }
+        }
+        return toReturn;
+    }
+
+    public String fetchAddressValueFromId(String id){
+        try{
+            return opencrvsLocationsJson.getJSONObject("data").getJSONObject(id).getString("name");
+        } catch(Exception e){
+            throw ErrorCode.ADDRESS_FETCHING_EXCEPTION.throwUnchecked(e);
+        }
+    }
+
+    public JSONObject fetchAllAddresses(){
+        String token = restTokenUtil.getOpencrvsAuthToken("Fetching addresses.");
+        if(token==null || token.isEmpty()){
+            throw ErrorCode.ADDRESS_FETCHING_EXCEPTION.throwUnchecked();
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + token);
+        try{
+            return new JSONObject(new RestTemplate().exchange(locationsUrl, HttpMethod.GET, new HttpEntity<>(headers), String.class).getBody());
+        } catch (Exception e){
+            throw ErrorCode.ADDRESS_FETCHING_EXCEPTION.throwUnchecked(e);
         }
     }
 }
