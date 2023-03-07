@@ -51,12 +51,12 @@ public class OpencrvsDataUtil {
     @Autowired
     private RestTokenUtil restTokenUtil;
 
-    private JSONObject opencrvsLocationsJson;
+    // private JSONObject opencrvsLocationsJson;
 
-    @PostConstruct
-    public void initLocations(){
-        opencrvsLocationsJson = fetchAllAddresses();
-    }
+    // @PostConstruct
+    // public void initLocations(){
+    //     opencrvsLocationsJson = fetchAllAddresses();
+    // }
 
     public ReceiveDto buildIdJson(DecryptedEventDto opencrvsRequestBody){
         List<DecryptedEventDto.Event.Context.Entry> contextEntries;
@@ -284,23 +284,25 @@ public class OpencrvsDataUtil {
 
     public String fetchAddressValueFromId(String id){
         try{
-            return opencrvsLocationsJson.getJSONObject("data").getJSONObject(id).getString("name");
+            JSONObject json = new JSONObject(
+                new RestTemplate().getForObject(locationsUrl + "/" + id, String.class));
+            return json.getString("name");
         } catch(Exception e){
             throw ErrorCode.ADDRESS_FETCHING_EXCEPTION.throwUnchecked(e);
         }
     }
 
-    public JSONObject fetchAllAddresses(){
-        String token = restTokenUtil.getOpencrvsAuthToken("Fetching addresses.");
-        if(token==null || token.isEmpty()){
-            throw ErrorCode.ADDRESS_FETCHING_EXCEPTION.throwUnchecked();
-        }
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + token);
-        try{
-            return new JSONObject(new RestTemplate().exchange(locationsUrl, HttpMethod.GET, new HttpEntity<>(headers), String.class).getBody());
-        } catch (Exception e){
-            throw ErrorCode.ADDRESS_FETCHING_EXCEPTION.throwUnchecked(e);
-        }
-    }
+    // public JSONObject fetchAllAddresses(){
+    //     String token = restTokenUtil.getOpencrvsAuthToken("Fetching addresses.");
+    //     if(token==null || token.isEmpty()){
+    //         throw ErrorCode.ADDRESS_FETCHING_EXCEPTION.throwUnchecked();
+    //     }
+    //     HttpHeaders headers = new HttpHeaders();
+    //     headers.set("Authorization", "Bearer " + token);
+    //     try{
+    //         return new JSONObject(new RestTemplate().exchange(locationsUrl, HttpMethod.GET, new HttpEntity<>(headers), String.class).getBody());
+    //     } catch (Exception e){
+    //         throw ErrorCode.ADDRESS_FETCHING_EXCEPTION.throwUnchecked(e);
+    //     }
+    // }
 }
