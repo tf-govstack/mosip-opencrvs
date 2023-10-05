@@ -1,0 +1,89 @@
+name: Maven Package upon a push
+
+on:
+  release:
+    types: [published]
+  pull_request:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      message:
+        description: 'Message for manually triggering'
+        required: false
+        default: 'Triggered for Updates'
+        type: string
+  push:
+    branches:
+      - '!release-branch'
+      - master
+      - 1.*
+      - develop
+      - MOSIP*
+      - release*
+
+jobs:
+  build-maven-opencrvs-mediator:
+    uses: mosip/kattu/.github/workflows/maven-build.yml@master
+    with:
+      SERVICE_LOCATION: mediator
+      BUILD_ARTIFACT: opencrvs-mediator
+    secrets:
+      OSSRH_USER: ${{ secrets.OSSRH_USER }}
+      OSSRH_SECRET: ${{ secrets.OSSRH_SECRET }}
+      OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
+      GPG_SECRET: ${{ secrets.GPG_SECRET }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  build-dockers:
+    needs: build-maven-opencrvs-mediator
+    strategy:
+      matrix:
+        include:
+          - SERVICE_LOCATION: 'mediator'
+            SERVICE_NAME: 'mosip-opencrvs-mediator'
+            BUILD_ARTIFACT: 'opencrvs-mediator'
+      fail-fast: false
+    name: ${{ matrix.SERVICE_NAME }}
+    uses: mosip/kattu/.github/workflows/docker-build.yml@master
+    with:
+      SERVICE_LOCATION: ${{ matrix.SERVICE_LOCATION }}
+      SERVICE_NAME: ${{ matrix.SERVICE_NAME }}
+      BUILD_ARTIFACT: ${{ matrix.BUILD_ARTIFACT }}
+    secrets:
+      DEV_NAMESPACE_DOCKER_HUB: ${{ secrets.DEV_NAMESPACE_DOCKER_HUB }}
+      ACTOR_DOCKER_HUB: ${{ secrets.ACTOR_DOCKER_HUB }}
+      RELEASE_DOCKER_HUB: ${{ secrets.RELEASE_DOCKER_HUB }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  build-maven-regproc-opencrvs-stage:
+    uses: mosip/kattu/.github/workflows/maven-build.yml@master
+    with:
+      SERVICE_LOCATION: registration-processor-opencrvs-stage
+      BUILD_ARTIFACT: registration-processor-opencrvs-stage
+    secrets:
+      OSSRH_USER: ${{ secrets.OSSRH_USER }}
+      OSSRH_SECRET: ${{ secrets.OSSRH_SECRET }}
+      OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
+      GPG_SECRET: ${{ secrets.GPG_SECRET }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  build-dockers-regproc-opencrvs-stage:
+    needs: build-maven-regproc-opencrvs-stage
+    strategy:
+      matrix:
+        include:
+          - SERVICE_LOCATION: 'registration-processor-opencrvs-stage'
+            SERVICE_NAME: 'registration-processor-opencrvs-stage'
+            BUILD_ARTIFACT: 'registration-processor-opencrvs-stage'
+      fail-fast: false
+    name: ${{ matrix.SERVICE_NAME }}
+    uses: mosip/kattu/.github/workflows/docker-build.yml@master
+    with:
+      SERVICE_LOCATION: ${{ matrix.SERVICE_LOCATION }}
+      SERVICE_NAME: ${{ matrix.SERVICE_NAME }}
+      BUILD_ARTIFACT: ${{ matrix.BUILD_ARTIFACT }}
+    secrets:
+      DEV_NAMESPACE_DOCKER_HUB: ${{ secrets.DEV_NAMESPACE_DOCKER_HUB }}
+      ACTOR_DOCKER_HUB: ${{ secrets.ACTOR_DOCKER_HUB }}
+      RELEASE_DOCKER_HUB: ${{ secrets.RELEASE_DOCKER_HUB }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
