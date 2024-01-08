@@ -1,4 +1,4 @@
-## MOSIP OpenCRVS Integration - MOSIP Side Mediator
+# MOSIP OpenCRVS Integration - MOSIP Side Mediator
 
 ## Overview
 This repo contains following MOSIP side of components for the MOSIP OpenCRVS integration:
