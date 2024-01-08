@@ -9,6 +9,7 @@ import io.mosip.opencrvs.constant.Constants;
 import io.mosip.opencrvs.constant.LoggingConstants;
 import io.mosip.opencrvs.dto.BaseEventRequest;
 import io.mosip.opencrvs.dto.DecryptedEventDto;
+import io.mosip.opencrvs.dto.DecryptedEventDto.Event.Context.Entry.Resource.Identifier.Type.Coding;
 import io.mosip.opencrvs.error.ErrorCode;
 import io.mosip.opencrvs.util.LogUtil;
 import io.mosip.opencrvs.util.OpencrvsCryptoUtil;
@@ -124,8 +125,10 @@ public class DeathEventHandlerService {
                 throw ErrorCode.MISSING_UIN_IN_DEATH_EVENT.throwChecked();
             }
             for(DecryptedEventDto.Event.Context.Entry.Resource.Identifier identifier: patient.identifier){
-                if("NATIONAL_ID".equals(identifier.type)){
-                    return identifier.value;
+            	for(Coding coding : identifier.type.coding) {
+                	if("NATIONAL_ID".equals(coding.code)){
+                        return identifier.value;
+                    }
                 }
             }
             throw ErrorCode.MISSING_UIN_IN_DEATH_EVENT.throwChecked();
