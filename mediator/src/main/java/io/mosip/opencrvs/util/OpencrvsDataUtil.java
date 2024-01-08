@@ -6,6 +6,7 @@ import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.kernel.core.util.StringUtils;
 import io.mosip.opencrvs.constant.LoggingConstants;
 import io.mosip.opencrvs.dto.DecryptedEventDto;
+import io.mosip.opencrvs.dto.DecryptedEventDto.Event.Context.Entry.Resource.Identifier;
 import io.mosip.opencrvs.dto.DecryptedEventDto.Event.Context.Entry.Resource.Identifier.Type.Coding;
 import io.mosip.opencrvs.dto.ReceiveDto;
 import io.mosip.opencrvs.error.ErrorCode;
@@ -71,7 +72,7 @@ public class OpencrvsDataUtil {
                     task = entry.resource;
                 } else if(child==null && "Patient".equals(entry.resource.resourceType)){
                     child = entry.resource;
-                } else if(child!=null && "Patient".equals(entry.resource.resourceType)){
+                } else if(child!=null && "Patient".equals(entry.resource.resourceType)&&isPatientMother(entry.resource.identifier)){
                     mother = entry.resource;
                 }
                 if (child!=null && mother!=null && task!=null) break;
@@ -124,6 +125,17 @@ public class OpencrvsDataUtil {
         "}");
 
         return returner;
+    }
+    
+    public boolean isPatientMother(List<Identifier> identifier) {
+    	for(Identifier ident : identifier) {
+    		for(Coding coding : ident.type.coding) {
+            	if("NATIONAL_ID".equals(coding.code)){
+                    return true;
+                }
+            }
+    	}
+    	return false;
     }
 
     public String getOpencrvsBRNFromPatientBody(DecryptedEventDto.Event.Context.Entry.Resource patient){
