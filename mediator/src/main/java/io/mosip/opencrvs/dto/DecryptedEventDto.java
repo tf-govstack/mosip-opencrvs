@@ -12,7 +12,14 @@ public class DecryptedEventDto {
                         public String reference;
                     }
                     public static class Identifier{
-                        public String type;
+                    	public static class Type {
+                    		public static class Coding {
+                    			public String system;
+                    			public String code;
+                    		}
+                    		public List<Coding> coding;
+                    	}
+                        public Type type;
                         public String system;
                         public String value;
                     }

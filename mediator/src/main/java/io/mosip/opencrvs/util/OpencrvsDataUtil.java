@@ -6,6 +6,7 @@ import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.kernel.core.util.StringUtils;
 import io.mosip.opencrvs.constant.LoggingConstants;
 import io.mosip.opencrvs.dto.DecryptedEventDto;
+import io.mosip.opencrvs.dto.DecryptedEventDto.Event.Context.Entry.Resource.Identifier.Type.Coding;
 import io.mosip.opencrvs.dto.ReceiveDto;
 import io.mosip.opencrvs.error.ErrorCode;
 import org.json.JSONObject;
@@ -127,8 +128,10 @@ public class OpencrvsDataUtil {
 
     public String getOpencrvsBRNFromPatientBody(DecryptedEventDto.Event.Context.Entry.Resource patient){
         for(DecryptedEventDto.Event.Context.Entry.Resource.Identifier identifier : patient.identifier){
-            if("BIRTH_REGISTRATION_NUMBER".equals(identifier.type)){
-                return identifier.value;
+            for(Coding coding : identifier.type.coding) {
+            	if("BIRTH_REGISTRATION_NUMBER".equals(coding.code)){
+                    return identifier.value;
+                }
             }
         }
         return null;
@@ -220,8 +223,10 @@ public class OpencrvsDataUtil {
             for(DecryptedEventDto.Event.Context.Entry entry: contextEntries) {
                 if ("Patient".equals(entry.resource.resourceType)) {
                     for(DecryptedEventDto.Event.Context.Entry.Resource.Identifier identifier : entry.resource.identifier){
-                        if("MOSIP_AID".equals(identifier.type)){
-                            return identifier.value;
+                    	for(Coding coding : identifier.type.coding) {
+                        	if("MOSIP_AID".equals(coding.code)){
+                                return identifier.value;
+                            }
                         }
                     }
                     break;
