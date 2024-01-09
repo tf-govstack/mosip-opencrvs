@@ -31,7 +31,7 @@ public class InternalRestController {
 
     @PostMapping(value = "/receiveCredentialBirth", consumes = MediaType.APPLICATION_JSON_VALUE)
     public SimpleMessageResponse postReceiveUinOnBirth(@RequestBody WebsubRequest body) {
-        LOGGER.debug(LoggingConstants.SESSION, LoggingConstants.ID, "postReceiveUinOnBirth", "Here is the request received - " + body);
+        LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "postReceiveUinOnBirth", "Here is the request received - " + body);
         receiveCredentialService.tokenizeReceivedCredential(body);
         return SimpleMessageResponse.setResponseMessage("Received");
     }
