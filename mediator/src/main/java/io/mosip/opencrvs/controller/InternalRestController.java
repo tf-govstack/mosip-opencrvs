@@ -2,6 +2,7 @@ package io.mosip.opencrvs.controller;
 
 import io.mosip.kernel.core.exception.BaseCheckedException;
 import io.mosip.kernel.core.logger.spi.Logger;
+import io.mosip.kernel.websub.api.annotation.PreAuthenticateContentAndVerifyIntent;
 import io.mosip.opencrvs.constant.LoggingConstants;
 import io.mosip.opencrvs.dto.SimpleMessageResponse;
 import io.mosip.opencrvs.dto.WebsubRequest;
@@ -29,7 +30,10 @@ public class InternalRestController {
         return SimpleMessageResponse.setResponseMessage("unable to unsubscribe");
     }
 
-    @PostMapping(value = "/receiveCredentialBirth", consumes = MediaType.APPLICATION_JSON_VALUE)
+    //@PostMapping(value = "/receiveCredentialBirth", consumes = MediaType.APPLICATION_JSON_VALUE)
+    //@PreAuthenticateContentAndVerifyIntent(secret = "abc@123",callback = "" ,topic = "")
+    @PostMapping(path = "/receiveCredentialBirth", consumes = MediaType.APPLICATION_JSON_VALUE)
+	@PreAuthenticateContentAndVerifyIntent(secret = "${mosip.opencrvs.partner.client.sha.secret}", callback = "/opencrvs/v1/internal/receiveCredentialBirth", topic = "${mosip.opencrvs.partner.client.id}/CREDENTIAL_ISSUED")
     public SimpleMessageResponse postReceiveUinOnBirth(@RequestBody WebsubRequest body) {
         LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "postReceiveUinOnBirth", "Here is the request received - " + body);
         receiveCredentialService.tokenizeReceivedCredential(body);
