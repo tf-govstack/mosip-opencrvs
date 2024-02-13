@@ -33,7 +33,7 @@ public class InternalRestController {
     //@PostMapping(value = "/receiveCredentialBirth", consumes = MediaType.APPLICATION_JSON_VALUE)
     //@PreAuthenticateContentAndVerifyIntent(secret = "abc@123",callback = "" ,topic = "")
     @PostMapping(path = "/receiveCredentialBirth", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-	@PreAuthenticateContentAndVerifyIntent(secret = "${mosip.opencrvs.partner.client.sha.secret}", callback = "/opencrvs/v1/internal/receiveCredentialBirth", topic = "${mosip.opencrvs.partner.client.id}/CREDENTIAL_ISSUED")
+    @PreAuthenticateContentAndVerifyIntent(secret = "${mosip.opencrvs.partner.client.sha.secret}", callback = "/opencrvs/v1/internal/receiveCredentialBirth", topic = "${mosip.opencrvs.credential.websub.topic}")
     public SimpleMessageResponse postReceiveUinOnBirth(@RequestBody WebsubRequest body) {
         LOGGER.info(LoggingConstants.SESSION, LoggingConstants.ID, "postReceiveUinOnBirth", "Here is the request received - " + body);
         receiveCredentialService.tokenizeReceivedCredential(body);
