@@ -90,19 +90,24 @@ public class RestTokenUtil {
     }
 
     private String getOpencrvsAuthTokenInterface(String tokenEndpoint, String clientId, String clientSecret) throws BaseCheckedException{
-        String body = "{" +
-            "\"client_id\":\"" + clientId + "\"" + "," +
-            "\"client_secret\":\"" + clientSecret + "\"" +
-        "}";
+//        String body = "{" +
+//            "\"client_id\":\"" + clientId + "\"" + "," +
+//            "\"client_secret\":\"" + clientSecret + "\"" +
+//        "}";
         HttpHeaders requestHeaders = new HttpHeaders();
         requestHeaders.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> request = new HttpEntity<>(body, requestHeaders);
+        HttpEntity<String> request = new HttpEntity<>(requestHeaders);
+        
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(tokenEndpoint)
+                .queryParam("client_id", clientId)
+                .queryParam("client_secret", clientSecret)
+                .queryParam("grant_type", "client_credentials");
         try{
-            String responseJson = new RestTemplate().postForObject(tokenEndpoint,request,String.class);
+            String responseJson = new RestTemplate().postForObject(builder.toUriString(),request,String.class);
             if (responseJson == null || responseJson.isEmpty()) {
                 throw ErrorCode.TOKEN_GENERATION_FAILED.throwChecked();
             }
-            return new JSONObject(responseJson).getString("token");
+            return new JSONObject(responseJson).getString("access_token");
         } catch (JSONException | RestClientException e) {
             throw ErrorCode.TOKEN_GENERATION_FAILED.throwChecked(e);
         }
